@@ -31,7 +31,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   position: fixed; inset: 0; z-index: 50;
   background: #f5f3ef;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 16px; transition: opacity 0.5s;
+  gap: 16px; transition: opacity 0.8s ease;
 }
 #map-loading.hidden { opacity: 0; pointer-events: none; }
 #map-loading-title { font-family: var(--font-display); font-size: 18px; letter-spacing: 0.15em; color: #6b5d4f; text-transform: uppercase; }
@@ -82,15 +82,19 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   position: fixed; top: 38%; left: 50%; transform: translate(-50%, -50%);
   z-index: 50; text-align: center; pointer-events: none;
   padding: 20px;
+  animation: fadeUp 0.6s ease both;
 }
 #map-hint.hidden { display: none; }
 #map-hint p { font-size: 13px; color: #3a3530; line-height: 1.9; letter-spacing: 0.04em; text-shadow: 0 1px 3px rgba(255,255,255,0.8); }
+@keyframes fadeUp { from { opacity: 0; transform: translate(-50%, -44%); } to { opacity: 1; transform: translate(-50%, -50%); } }
+@keyframes markerPop { from { opacity: 0; transform: scale(0.4); } to { opacity: 1; transform: scale(1); } }
+.leaflet-marker-icon { animation: markerPop 0.25s cubic-bezier(0.34,1.56,0.64,1) both; }
 
 /* PANELS */
 .panel { position: fixed; inset: 0; z-index: 200; background: var(--bg); transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.16,1,0.3,1); overflow-y: auto; -webkit-overflow-scrolling: touch; }
 .panel.open { transform: translateY(0); }
-.panel-backdrop { position: fixed; inset: 0; z-index: 199; background: transparent; display: none; }
-.panel-backdrop.visible { display: block; }
+.panel-backdrop { position: fixed; inset: 0; z-index: 199; background: rgba(0,0,0,0); display: none; transition: background 0.3s; }
+.panel-backdrop.visible { display: block; background: rgba(0,0,0,0.4); }
 .panel-header { position: sticky; top: 0; background: var(--bg); padding: 20px 20px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; z-index: 10; }
 .panel-title { font-family: var(--font-display); font-size: 14px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
 .close-btn { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; color: var(--text-dim); cursor: pointer; font-size: 22px; border-radius: 50%; }
@@ -150,6 +154,10 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 .feed-location { font-size: 11px; color: var(--text-dim); margin-bottom: 6px; font-style: italic; }
 .feed-note { font-size: 14px; line-height: 1.55; color: var(--text); }
 .feed-empty { padding: 60px 20px; text-align: center; color: var(--text-dim); font-size: 13px; line-height: 1.8; }
+.skeleton { border-bottom: 1px solid var(--border); padding: 18px 20px; }
+.skeleton-line { background: var(--surface2); border-radius: 2px; margin-bottom: 8px; animation: shimmer 1.4s ease infinite; }
+@keyframes shimmer { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
 /* LIGHTBOX */
 #lightbox { position: fixed; inset: 0; z-index: 400; background: rgba(0,0,0,0.97); display: flex; align-items: center; justify-content: center; padding: 20px; }
@@ -817,7 +825,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
         currentCity = tab.dataset.city;
         renderMarkers();
         var c = CITIES[currentCity] || CITIES.all;
-        map.setView(c.center, c.zoom, { animate: true });
+        setTimeout(function() { map.setView(c.center, c.zoom, { animate: true, duration: 0.6 }); }, 80);
       });
     });
   }
@@ -825,16 +833,51 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   // PANELS
   var openPanels = [];
   function openPanel(id) {
-    document.getElementById(id).classList.add('open');
+    var el = document.getElementById(id);
+    el.classList.add('open');
+    el.style.transform = '';
     document.getElementById('panel-backdrop').classList.add('visible');
     openPanels.push(id);
     haptic();
   }
   function closePanel(id) {
-    document.getElementById(id).classList.remove('open');
+    var el = document.getElementById(id);
+    el.classList.remove('open');
+    el.style.transform = '';
     openPanels = openPanels.filter(function(p) { return p !== id; });
     if (!openPanels.length) document.getElementById('panel-backdrop').classList.remove('visible');
   }
+
+  // SWIPE DOWN TO CLOSE panels
+  document.querySelectorAll('.panel').forEach(function(panel) {
+    var startY = 0, startScroll = 0, dragging = false;
+    panel.addEventListener('touchstart', function(e) {
+      startY = e.touches[0].clientY;
+      startScroll = panel.scrollTop;
+      dragging = false;
+    }, { passive: true });
+    panel.addEventListener('touchmove', function(e) {
+      var dy = e.touches[0].clientY - startY;
+      if (dy > 0 && startScroll === 0) {
+        dragging = true;
+        panel.style.transform = 'translateY(' + Math.min(dy * 0.5, 120) + 'px)';
+        panel.style.transition = 'none';
+      }
+    }, { passive: true });
+    panel.addEventListener('touchend', function(e) {
+      panel.style.transition = '';
+      var dy = e.changedTouches[0].clientY - startY;
+      if (dragging && dy > 80) {
+        var id = panel.id;
+        closePanel(id);
+        if (id === 'add-panel') resetForm();
+        haptic();
+      } else {
+        panel.style.transform = '';
+      }
+      dragging = false;
+    }, { passive: true });
+  });
   function closeAllPanels() {
     openPanels.slice().forEach(function(id) { closePanel(id); });
   }
@@ -1002,6 +1045,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 
   function renderFeed() {
     var body = document.getElementById('feed-body');
+    var scrollTop = body.scrollTop;
     var searchEl = document.getElementById('feed-search');
     var searchVal = searchEl ? searchEl.value.toLowerCase().trim() : '';
     var pins = allPins.filter(function(p) {
@@ -1023,7 +1067,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     }
 
     body.innerHTML = pins.map(function(p) {
-      return '<div class="feed-item" data-lat="' + p.lat + '" data-lng="' + p.lng + '" data-id="' + p.id + '">' +
+      return '<div class="feed-item" data-lat="' + p.lat + '" data-lng="' + p.lng + '" data-id="' + p.id + '" style="animation:fadeIn 0.2s ease both">' +
         (p.photo_url ? '<img class="feed-item-img" src="' + esc(p.photo_url) + '" loading="lazy" alt=""/>' : '') +
         '<div class="feed-meta"><span class="feed-contributor">' + esc(p.contributor_name) + '</span><span class="feed-time">' + fmtDate(p.created_at) + '</span></div>' +
         '<div class="feed-location">' + (p.label ? esc(p.label) + ' · ' : '') + esc(p.city) + '</div>' +
@@ -1031,6 +1075,15 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
         '</div>';
     }).join('');
 
+  }
+
+    body.scrollTop = scrollTop;
+  }
+
+  function showFeedSkeleton() {
+    var body = document.getElementById('feed-body');
+    var row = '<div class="skeleton"><div class="skeleton-line" style="width:40%;height:10px"></div><div class="skeleton-line" style="width:70%;height:10px"></div><div class="skeleton-line" style="width:55%;height:10px;margin-bottom:0"></div></div>';
+    body.innerHTML = row + row + row;
   }
 
   // Single delegated listener for feed clicks — wired once in boot
@@ -1212,9 +1265,11 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     document.getElementById('add-btn').addEventListener('click', function() {
       if (!contributor) { showNameOverlay(); return; }
       openPanel('add-panel');
+      setTimeout(function() { document.getElementById('label-input').focus(); }, 350);
     });
     document.getElementById('feed-btn').addEventListener('click', function() {
-      renderFeed();
+      if (!allPins.length) showFeedSkeleton();
+      else renderFeed();
       openPanel('feed-panel');
     });
     var searchDebounce;
