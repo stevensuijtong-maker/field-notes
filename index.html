@@ -94,7 +94,10 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 #map-hint p { font-size: 13px; color: #3a3530; line-height: 1.9; letter-spacing: 0.04em; text-shadow: 0 1px 3px rgba(255,255,255,0.8); }
 @keyframes fadeUp { from { opacity: 0; transform: translate(-50%, -44%); } to { opacity: 1; transform: translate(-50%, -50%); } }
 @keyframes markerPop { from { opacity: 0; transform: scale(0.4); } to { opacity: 1; transform: scale(1); } }
-.leaflet-marker-icon { animation: markerPop 0.25s cubic-bezier(0.34,1.56,0.64,1) both; }
+/* Only pop-animate markers we explicitly flag — never during pan/zoom repositioning */
+.leaflet-marker-icon.marker-new { animation: markerPop 0.22s cubic-bezier(0.34,1.56,0.64,1) both; }
+/* Promote map panes to their own GPU layers so panning is compositor-only */
+.leaflet-map-pane, .leaflet-tile-pane, .leaflet-marker-pane { will-change: transform; }
 
 /* PANELS */
 .panel { position: fixed; inset: 0; z-index: 200; background: var(--bg); transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.16,1,0.3,1); overflow-y: auto; -webkit-overflow-scrolling: touch; }
@@ -786,7 +789,9 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
       clusterGroup = L.markerClusterGroup({
         maxClusterRadius: 40, spiderfyOnMaxZoom: true,
         showCoverageOnHover: false, zoomToBoundsOnClick: true,
-        animate: false  // disable internal animation for snappier feel
+        animate: false,
+        chunkedLoading: true,          // yields to browser between batches — keeps pan smooth
+        removeOutsideVisibleBounds: true  // drops off-screen markers from DOM
       });
       map.addLayer(clusterGroup);
     } else {
@@ -798,11 +803,17 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     document.getElementById('map-hint').classList.toggle('hidden', pins.length > 0);
   }
 
-  // Helpers used by realtime/submit — keep these for the call sites below
   function rebuildMarkerLayers() { renderMarkers(); }
   function addPinToLayers(pin) {
     if (!pin.lat || !pin.lng || !clusterGroup) return;
-    clusterGroup.addLayer(makeMarkerForPin(pin));
+    var m = makeMarkerForPin(pin);
+    clusterGroup.addLayer(m);
+    // Briefly mark the icon so the pop animation fires only for this new marker
+    var el = m.getElement ? m.getElement() : null;
+    if (el) {
+      el.classList.add('marker-new');
+      setTimeout(function() { el.classList.remove('marker-new'); }, 400);
+    }
   }
 
   // DATA
