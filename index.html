@@ -195,10 +195,40 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 .leaflet-bottom.leaflet-left { bottom: 140px !important; left: 12px !important; }
 .leaflet-control-attribution { background: rgba(0,0,0,0.4) !important; color: #444 !important; font-size: 9px !important; }
 
+
+#locate-btn {
+  position: fixed; bottom: 140px; right: 12px; z-index: 100;
+  width: 36px; height: 36px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 2px; color: var(--text-dim);
+  font-size: 16px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s; box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+}
+#locate-btn:active { background: var(--surface); }
+#locate-btn.locating { color: var(--accent); border-color: var(--accent); animation: pulse 1s infinite; }
+#locate-btn.found { color: var(--accent2); border-color: var(--accent2); }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+#feed-search:focus { border-color: var(--accent); }
+
+#admin-bar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 99;
+  background: rgba(200,184,154,0.15);
+  border-bottom: 1px solid var(--accent);
+  padding: 5px 20px;
+  font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--accent); text-align: center;
+  transform: translateY(-100%); transition: transform 0.3s;
+}
+#admin-bar.visible { transform: translateY(0); }
+#topbar.admin-active { top: 28px; }
 </style>
 </head>
 <body>
 
+<button id="locate-btn" title="My location">◎</button>
+<div id="admin-bar">Admin Mode Active</div>
 <!-- MAP LOADING -->
 <div id="map-loading">
   <div id="map-loading-title">Field Notes</div>
@@ -286,6 +316,9 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     <div class="close-btn" id="close-feed">×</div>
   </div>
   <div id="pull-indicator">↓ Pull to refresh</div>
+  <div style="padding:10px 20px;border-bottom:1px solid var(--border)">
+    <input type="text" id="feed-search" placeholder="Search notes and labels…" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:var(--font-body);font-size:14px;padding:10px 12px;outline:none;-webkit-appearance:none"/>
+  </div>
   <div class="feed-filter">
     <button class="feed-filter-btn active" data-filter="all">All</button>
     <button class="feed-filter-btn" data-filter="mine">Mine</button>
@@ -347,8 +380,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 (function() {
   var SUPABASE_URL = 'https://mjirubqqgvemwxdixzsq.supabase.co';
   var SUPABASE_KEY = 'sb_publishable_I3nGnJAof56DlaGBVbq16Q_u2bINm4R';
-  // *** CHANGE '8starfish*' TO YOUR ADMIN PASSWORD BEFORE DEPLOYING ***
-  var ADMIN_PASSWORD = '8starfish*';
+  // *** CHANGE 'CHANGEME' TO YOUR ADMIN PASSWORD BEFORE DEPLOYING ***
+  var ADMIN_PASSWORD = 'CHANGEME';
 
   var map, allPins = [];
   var currentCity = 'all';
@@ -358,6 +391,19 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   var photoFile = null;
   var detectedLat = null, detectedLng = null, detectedCity = null;
   var isOnline = navigator.onLine;
+
+
+  // CONTRIBUTOR COLOURS
+  var COLOURS = ['#e8452a','#4a90d9','#7db87d','#c8852a','#9b6bb5','#d4885a'];
+  var colourMap = {};
+  var colourIdx = 0;
+  function getContributorColour(name) {
+    if (!colourMap[name]) {
+      colourMap[name] = COLOURS[colourIdx % COLOURS.length];
+      colourIdx++;
+    }
+    return colourMap[name];
+  }
 
   var CITIES = {
     'all':       { center: [48.5, 10.0], zoom: 4 },
@@ -384,6 +430,29 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
       if (lat >= b.latMin && lat <= b.latMax && lng >= b.lngMin && lng <= b.lngMax) return b.name;
     }
     return 'Unknown';
+  }
+
+
+  // COMPRESS PHOTO before upload
+  function compressPhoto(file) {
+    return new Promise(function(resolve) {
+      var canvas = document.createElement('canvas');
+      var ctx = canvas.getContext('2d');
+      var img = new Image();
+      img.onload = function() {
+        var MAX = 1600;
+        var w = img.width, h = img.height;
+        if (w > h) { if (w > MAX) { h = h * MAX / w; w = MAX; } }
+        else { if (h > MAX) { w = w * MAX / h; h = MAX; } }
+        canvas.width = w; canvas.height = h;
+        ctx.drawImage(img, 0, 0, w, h);
+        canvas.toBlob(function(blob) {
+          resolve(blob || file);
+        }, 'image/jpeg', 0.82);
+      };
+      img.onerror = function() { resolve(file); };
+      img.src = URL.createObjectURL(file);
+    });
   }
 
   // API
@@ -561,8 +630,11 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     });
   }
 
-  function makeIcon(cls) {
-    return L.divIcon({ className: '', html: '<div class="marker-dot ' + cls + '"></div>', iconSize: [16,16], iconAnchor: [8,8] });
+  function makeIcon(cls, colour) {
+    var c = colour || '#e8452a';
+    var size = cls === 'dot-photo' ? 16 : 11;
+    var html = '<div style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;background:' + c + ';border:2px solid rgba(255,255,255,0.6);box-shadow:0 0 12px ' + c + '88;"></div>';
+    return L.divIcon({ className: '', html: html, iconSize: [size,size], iconAnchor: [size/2,size/2] });
   }
 
   var markerList = [];
@@ -577,7 +649,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     pins.forEach(function(pin) {
       if (!pin.lat || !pin.lng) return;
       var cls = pin.photo_url ? 'dot-photo' : 'dot-note';
-      var m = L.marker([pin.lat, pin.lng], { icon: makeIcon(cls) }).addTo(map);
+      var colour = getContributorColour(pin.contributor_name);
+      var m = L.marker([pin.lat, pin.lng], { icon: makeIcon(cls, colour) }).addTo(map);
       m.on('click', (function(p) { return function() { openDetail(p); }; })(pin));
       markerList.push(m);
     });
@@ -702,10 +775,17 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   // FEED
   function renderFeed() {
     var body = document.getElementById('feed-body');
+    var searchEl = document.getElementById('feed-search');
+    var searchVal = searchEl ? searchEl.value.toLowerCase().trim() : '';
     var pins = allPins.filter(function(p) {
       var cityMatch = currentCity === 'all' || p.city === currentCity;
       var mineMatch = feedFilter === 'all' || p.contributor_name === contributor;
-      return cityMatch && mineMatch;
+      var searchMatch = !searchVal ||
+        (p.note && p.note.toLowerCase().indexOf(searchVal) > -1) ||
+        (p.label && p.label.toLowerCase().indexOf(searchVal) > -1) ||
+        (p.contributor_name && p.contributor_name.toLowerCase().indexOf(searchVal) > -1) ||
+        (p.city && p.city.toLowerCase().indexOf(searchVal) > -1);
+      return cityMatch && mineMatch && searchMatch;
     });
 
     if (!pins.length) {
@@ -764,7 +844,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     var btn = document.getElementById('submit-btn');
     btn.disabled = true; btn.textContent = photoFile ? 'Uploading photo…' : 'Saving…';
 
-    var doUpload = photoFile ? uploadPhoto(photoFile) : Promise.resolve(null);
+    var doUpload = photoFile ? compressPhoto(photoFile).then(uploadPhoto) : Promise.resolve(null);
     doUpload.then(function(photoUrl) {
       btn.textContent = 'Saving…';
       return api('pins', 'POST', {
@@ -846,12 +926,18 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 
     // ADMIN
     var adminBtn = document.getElementById('admin-btn');
-    if (isAdmin) adminBtn.classList.add('active');
+    if (isAdmin) {
+      adminBtn.classList.add('active');
+      document.getElementById('admin-bar').classList.add('visible');
+      document.getElementById('topbar').classList.add('admin-active');
+    }
     adminBtn.addEventListener('click', function() {
       if (isAdmin) {
         isAdmin = false;
         sessionStorage.removeItem('fn_admin');
         adminBtn.classList.remove('active');
+        document.getElementById('admin-bar').classList.remove('visible');
+        document.getElementById('topbar').classList.remove('admin-active');
         showToast('Admin mode off');
       } else {
         var val = prompt('Admin password:');
@@ -860,6 +946,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
           isAdmin = true;
           sessionStorage.setItem('fn_admin', '1');
           adminBtn.classList.add('active');
+          document.getElementById('admin-bar').classList.add('visible');
+          document.getElementById('topbar').classList.add('admin-active');
           showToast('Admin mode on');
           haptic();
         } else {
@@ -877,6 +965,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
       renderFeed();
       openPanel('feed-panel');
     });
+    document.getElementById('feed-search').addEventListener('input', renderFeed);
     document.getElementById('close-add').addEventListener('click', function() { closePanel('add-panel'); resetForm(); });
     document.getElementById('close-feed').addEventListener('click', function() { closePanel('feed-panel'); });
     document.getElementById('close-detail').addEventListener('click', function() { closePanel('detail-panel'); });
@@ -925,6 +1014,55 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
         document.getElementById('lightbox').classList.add('hidden');
         document.getElementById('lightbox-img').src = '';
       }
+    });
+
+    // CURRENT LOCATION BUTTON
+    var locateBtn = document.getElementById('locate-btn');
+    var locateMarker = null;
+    var locateCircle = null;
+
+    locateBtn.addEventListener('click', function() {
+      if (!navigator.geolocation) { showToast('Geolocation not supported', true); return; }
+      haptic();
+      locateBtn.className = 'locating';
+      locateBtn.textContent = '◎';
+
+      navigator.geolocation.getCurrentPosition(
+        function(pos) {
+          var lat = pos.coords.latitude;
+          var lng = pos.coords.longitude;
+          var accuracy = pos.coords.accuracy;
+
+          // Remove previous markers
+          if (locateMarker) { map.removeLayer(locateMarker); map.removeLayer(locateCircle); }
+
+          // Blue dot for current location
+          var locIcon = L.divIcon({
+            className: '',
+            html: '<div style="width:14px;height:14px;background:#4a90d9;border-radius:50%;border:3px solid white;box-shadow:0 0 12px rgba(74,144,217,0.6);"></div>',
+            iconSize: [14,14], iconAnchor: [7,7]
+          });
+          locateMarker = L.marker([lat, lng], { icon: locIcon }).addTo(map);
+          locateCircle = L.circle([lat, lng], {
+            radius: accuracy,
+            color: '#4a90d9', fillColor: '#4a90d9',
+            fillOpacity: 0.1, weight: 1, opacity: 0.4
+          }).addTo(map);
+
+          map.setView([lat, lng], 17, { animate: true });
+          locateBtn.className = 'found';
+          locateBtn.textContent = '◉';
+          haptic();
+          setTimeout(function() { locateBtn.className = ''; locateBtn.textContent = '◎'; }, 4000);
+        },
+        function(err) {
+          locateBtn.className = '';
+          var msg = err.code === 1 ? 'Location permission denied' :
+                    err.code === 2 ? 'Location unavailable' : 'Location timed out';
+          showToast(msg, true);
+        },
+        { timeout: 10000, maximumAge: 10000, enableHighAccuracy: true }
+      );
     });
   });
 })();
