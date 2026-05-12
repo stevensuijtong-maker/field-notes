@@ -721,6 +721,10 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
       attribution: '© OpenStreetMap © CARTO', maxZoom: 19
     }).addTo(map);
+
+    map.whenReady(function() {
+      document.getElementById('map-loading').classList.add('hidden');
+    });
   }
 
   function setActiveCity(cityName) {
@@ -736,33 +740,16 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   }
 
   function initCityDetection() {
-    var done = false;
-    var fallbackTimer = setTimeout(function() {
-      if (!done) { done = true; setActiveCity('St. Louis'); document.getElementById('map-loading').classList.add('hidden'); }
-    }, 3000);
+    // Default to St. Louis immediately so the map is never stuck on "All"
+    setActiveCity('St. Louis');
 
-    if (!navigator.geolocation) {
-      clearTimeout(fallbackTimer);
-      setActiveCity('St. Louis');
-      document.getElementById('map-loading').classList.add('hidden');
-      return;
-    }
-
+    // Then silently switch to the user's actual city if geolocation resolves
+    if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(function(pos) {
-      if (done) return;
-      done = true;
-      clearTimeout(fallbackTimer);
       var lat = pos.coords.latitude, lng = pos.coords.longitude;
       var detected = detectCity(lat, lng);
-      setActiveCity(detected !== 'Unknown' ? detected : 'St. Louis');
-      document.getElementById('map-loading').classList.add('hidden');
-    }, function() {
-      if (done) return;
-      done = true;
-      clearTimeout(fallbackTimer);
-      setActiveCity('St. Louis');
-      document.getElementById('map-loading').classList.add('hidden');
-    }, { timeout: 3000, maximumAge: 60000 });
+      if (detected !== 'Unknown') setActiveCity(detected);
+    }, null, { timeout: 5000, maximumAge: 60000 });
   }
 
   var iconCache = {};
