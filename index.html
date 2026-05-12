@@ -772,9 +772,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     return iconCache[key];
   }
 
-  // Per-city marker layers — built once, swapped instantly on tab change
-  var markerLayers = {};
-  var CLUSTER_OPTS = { maxClusterRadius: 40, spiderfyOnMaxZoom: true, showCoverageOnHover: false, zoomToBoundsOnClick: true };
+  var clusterGroup = null;
 
   function makeMarkerForPin(pin) {
     var cls = pin.photo_url ? 'dot-photo' : 'dot-note';
@@ -783,42 +781,28 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     return m;
   }
 
-  function rebuildMarkerLayers() {
-    // Remove all existing layers from map first
-    Object.keys(markerLayers).forEach(function(key) {
-      if (map.hasLayer(markerLayers[key])) map.removeLayer(markerLayers[key]);
-    });
-    markerLayers = {};
-    Object.keys(CITIES).forEach(function(city) {
-      markerLayers[city] = L.markerClusterGroup(CLUSTER_OPTS);
-    });
-    allPins.forEach(function(pin) {
-      if (!pin.lat || !pin.lng) return;
-      markerLayers['all'].addLayer(makeMarkerForPin(pin));
-      if (markerLayers[pin.city]) markerLayers[pin.city].addLayer(makeMarkerForPin(pin));
-    });
-  }
-
-  // Add a single new pin to existing layers without full rebuild
-  function addPinToLayers(pin) {
-    if (!pin.lat || !pin.lng || !Object.keys(markerLayers).length) return;
-    markerLayers['all'].addLayer(makeMarkerForPin(pin));
-    if (markerLayers[pin.city]) markerLayers[pin.city].addLayer(makeMarkerForPin(pin));
-  }
-
-  // Swap which city layer is visible — O(1), no marker recreation
   function renderMarkers() {
-    Object.keys(markerLayers).forEach(function(city) {
-      var cg = markerLayers[city];
-      if (city === currentCity) {
-        if (!map.hasLayer(cg)) map.addLayer(cg);
-      } else {
-        if (map.hasLayer(cg)) map.removeLayer(cg);
-      }
-    });
-    var count = currentCity === 'all' ? allPins.length :
-      allPins.filter(function(p) { return p.city === currentCity; }).length;
-    document.getElementById('map-hint').classList.toggle('hidden', count > 0);
+    if (!clusterGroup) {
+      clusterGroup = L.markerClusterGroup({
+        maxClusterRadius: 40, spiderfyOnMaxZoom: true,
+        showCoverageOnHover: false, zoomToBoundsOnClick: true,
+        animate: false  // disable internal animation for snappier feel
+      });
+      map.addLayer(clusterGroup);
+    } else {
+      clusterGroup.clearLayers();
+    }
+    var pins = currentCity === 'all' ? allPins : allPins.filter(function(p) { return p.city === currentCity; });
+    // Batch-add all markers in one pass — much faster than individual addLayer calls
+    clusterGroup.addLayers(pins.filter(function(p) { return p.lat && p.lng; }).map(makeMarkerForPin));
+    document.getElementById('map-hint').classList.toggle('hidden', pins.length > 0);
+  }
+
+  // Helpers used by realtime/submit — keep these for the call sites below
+  function rebuildMarkerLayers() { renderMarkers(); }
+  function addPinToLayers(pin) {
+    if (!pin.lat || !pin.lng || !clusterGroup) return;
+    clusterGroup.addLayer(makeMarkerForPin(pin));
   }
 
   // DATA
@@ -890,8 +874,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
         tab.classList.add('active');
         currentCity = tab.dataset.city;
         renderMarkers();
-        var c = CITIES[currentCity] || CITIES.all;
-        setTimeout(function() { map.setView(c.center, c.zoom, { animate: true, duration: 0.6 }); }, 80);
+        var c = CITIES[currentCity] || CITIES['all'];
+        map.setView(c.center, c.zoom, { animate: false });
       });
     });
   }
