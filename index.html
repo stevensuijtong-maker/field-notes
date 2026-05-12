@@ -79,12 +79,17 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 
 /* MAP EMPTY STATE */
 #map-hint {
-  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -60%);
   z-index: 50; text-align: center; pointer-events: none;
-  padding: 20px;
+  padding: 20px 28px;
+  background: rgba(14,14,14,0.72);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 #map-hint.hidden { display: none; }
-#map-hint p { font-size: 12px; color: var(--text-dim); line-height: 1.7; letter-spacing: 0.04em; }
+#map-hint p { font-size: 13px; color: var(--text); line-height: 1.9; letter-spacing: 0.04em; }
 
 /* PANELS */
 .panel { position: fixed; inset: 0; z-index: 200; background: var(--bg); transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.16,1,0.3,1); overflow-y: auto; -webkit-overflow-scrolling: touch; }
@@ -212,6 +217,9 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
 #feed-search:focus { border-color: var(--accent); }
+#feed-search-wrap { position: relative; }
+#feed-search-clear { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-dim); font-size: 18px; cursor: pointer; padding: 0 4px; line-height: 1; display: none; }
+#feed-search-clear.visible { display: block; }
 
 #admin-bar {
   position: fixed; top: 0; left: 0; right: 0; z-index: 99;
@@ -225,10 +233,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 #admin-bar.visible { transform: translateY(0); }
 #topbar.admin-active { top: 28px; }
 
-.marker-cluster { background: rgba(232,69,42,0.2) !important; }
-.marker-cluster div { background: rgba(232,69,42,0.7) !important; color: white !important; font-size: 11px !important; font-weight: 700 !important; }
-.marker-cluster-small { background: rgba(232,69,42,0.2) !important; }
-.marker-cluster-small div { background: rgba(232,69,42,0.6) !important; }
+.marker-cluster, .marker-cluster-small { background: rgba(232,69,42,0.2) !important; }
+.marker-cluster div, .marker-cluster-small div { background: rgba(232,69,42,0.6) !important; color: white !important; font-size: 11px !important; font-weight: 700 !important; }
 .marker-cluster-medium { background: rgba(232,69,42,0.25) !important; }
 .marker-cluster-medium div { background: rgba(232,69,42,0.7) !important; }
 
@@ -261,7 +267,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 
 <!-- MAP EMPTY HINT -->
 <div id="map-hint">
-  <p>No observations yet.<br>Tap <strong style="color:var(--accent)">+ Add Observation</strong> to begin.</p>
+  <p style="color:var(--text-dim);font-size:11px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px">No observations yet</p>
+  <p>Tap <strong style="color:var(--accent);letter-spacing:0.06em">+ Add Observation</strong> to begin.</p>
 </div>
 
 <!-- TOPBAR -->
@@ -309,7 +316,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
           <span style="font-size:11px;opacity:0.5">Location read from photo automatically</span>
         </div>
         <img id="photo-preview" alt=""/>
-        <input type="file" id="photo-input" accept="image/*" capture="environment"/>
+        <input type="file" id="photo-input" accept="image/*"/>
       </div>
       <div id="location-status" class="idle">
         <span id="location-text">Location will be read from your photo</span>
@@ -335,8 +342,11 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     <div class="close-btn" id="close-feed">×</div>
   </div>
   <div id="pull-indicator">↓ Pull to refresh</div>
-  <div style="padding:10px 20px;border-bottom:1px solid var(--border)">
-    <input type="text" id="feed-search" placeholder="Search notes and labels…" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:var(--font-body);font-size:14px;padding:10px 12px;outline:none;-webkit-appearance:none"/>
+  <div class="field" style="padding:10px 20px;margin-bottom:0;border-bottom:1px solid var(--border)">
+    <div id="feed-search-wrap">
+      <input type="text" id="feed-search" placeholder="Search notes and labels…" style="padding-right:32px"/>
+      <button id="feed-search-clear" title="Clear search">×</button>
+    </div>
   </div>
   <div class="feed-filter">
     <button class="feed-filter-btn active" data-filter="all">All</button>
@@ -479,11 +489,6 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     }).catch(function() {});
   }
 
-  window.addEventListener('online', function() {
-    updateOnlineStatus();
-    setTimeout(flushQueue, 1000);
-  });
-
   var CITIES = {
     'all':       { center: [48.5, 10.0], zoom: 4 },
     'St. Louis': { center: [38.627, -90.197], zoom: 13 },
@@ -525,11 +530,12 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
         else { if (h > MAX) { w = w * MAX / h; h = MAX; } }
         canvas.width = w; canvas.height = h;
         ctx.drawImage(img, 0, 0, w, h);
+        URL.revokeObjectURL(img.src);
         canvas.toBlob(function(blob) {
           resolve(blob || file);
         }, 'image/jpeg', 0.82);
       };
-      img.onerror = function() { resolve(file); };
+      img.onerror = function() { URL.revokeObjectURL(img.src); resolve(file); };
       img.src = URL.createObjectURL(file);
     });
   }
@@ -571,10 +577,10 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   }
 
   // TOAST
-  var toastTimer;
+  var toastTimer, toastEl;
   function showToast(msg, isError) {
     clearTimeout(toastTimer);
-    var t = document.getElementById('toast');
+    var t = toastEl || (toastEl = document.getElementById('toast'));
     t.textContent = msg;
     t.className = 'show' + (isError ? ' error' : '');
     toastTimer = setTimeout(function() { t.className = ''; }, isError ? 3500 : 2200);
@@ -590,8 +596,9 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
+  var dateFormatter = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
   function fmtDate(iso) {
-    try { return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); }
+    try { return dateFormatter.format(new Date(iso)); }
     catch(e) { return ''; }
   }
 
@@ -608,7 +615,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
       topbar.classList.remove('pushed');
     }
   }
-  window.addEventListener('online', updateOnlineStatus);
+  window.addEventListener('online', function() { updateOnlineStatus(); setTimeout(flushQueue, 1000); });
   window.addEventListener('offline', updateOnlineStatus);
 
   // LOCATION STATUS
@@ -709,22 +716,30 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     });
   }
 
+  var iconCache = {};
   function makeIcon(cls, colour) {
     var c = colour || '#e8452a';
+    var key = cls + '|' + c;
+    if (iconCache[key]) return iconCache[key];
     var size = cls === 'dot-photo' ? 16 : 11;
     var html = '<div style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;background:' + c + ';border:2px solid rgba(255,255,255,0.6);box-shadow:0 0 12px ' + c + '88;"></div>';
-    return L.divIcon({ className: '', html: html, iconSize: [size,size], iconAnchor: [size/2,size/2] });
+    iconCache[key] = L.divIcon({ className: '', html: html, iconSize: [size,size], iconAnchor: [size/2,size/2] });
+    return iconCache[key];
   }
 
   var clusterGroup = null;
   function renderMarkers() {
-    if (clusterGroup) { map.removeLayer(clusterGroup); }
-    clusterGroup = L.markerClusterGroup({
-      maxClusterRadius: 40,
-      spiderfyOnMaxZoom: true,
-      showCoverageOnHover: false,
-      zoomToBoundsOnClick: true
-    });
+    if (!clusterGroup) {
+      clusterGroup = L.markerClusterGroup({
+        maxClusterRadius: 40,
+        spiderfyOnMaxZoom: true,
+        showCoverageOnHover: false,
+        zoomToBoundsOnClick: true
+      });
+      map.addLayer(clusterGroup);
+    } else {
+      clusterGroup.clearLayers();
+    }
 
     var pins = currentCity === 'all' ? allPins : allPins.filter(function(p) { return p.city === currentCity; });
     var hint = document.getElementById('map-hint');
@@ -738,8 +753,6 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
       m.on('click', (function(p) { return function() { openDetail(p); }; })(pin));
       clusterGroup.addLayer(m);
     });
-
-    map.addLayer(clusterGroup);
   }
 
   // DATA
@@ -748,7 +761,10 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     api('pins?select=*&order=created_at.desc').then(function(pins) {
       allPins = Array.isArray(pins) ? pins : [];
       renderMarkers();
-      if (!silent) document.getElementById('map-loading').classList.add('hidden');
+      if (!silent) {
+        document.getElementById('map-loading').classList.add('hidden');
+        initRealtime();
+      }
       if (silent) showToast('Refreshed');
     }).catch(function(e) {
       document.getElementById('map-loading').classList.add('hidden');
@@ -756,12 +772,52 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     });
   }
 
+  // REAL-TIME — subscribe to new pins via Supabase websocket
+  var realtimeStarted = false;
+  function initRealtime() {
+    if (realtimeStarted) return;
+    realtimeStarted = true;
+    var wsUrl = SUPABASE_URL.replace('https://', 'wss://') + '/realtime/v1/websocket?apikey=' + SUPABASE_KEY + '&vsn=1.0.0';
+    var ws;
+    function connect() {
+      ws = new WebSocket(wsUrl);
+      ws.onopen = function() {
+        ws.send(JSON.stringify({ topic: 'realtime:public:pins', event: 'phx_join', payload: {}, ref: '1' }));
+      };
+      ws.onmessage = function(e) {
+        try {
+          var msg = JSON.parse(e.data);
+          if (msg.event === 'INSERT' && msg.payload && msg.payload.record) {
+            var pin = msg.payload.record;
+            // Ignore pins we just submitted ourselves (already in allPins)
+            if (allPins.some(function(p) { return String(p.id) === String(pin.id); })) return;
+            allPins.unshift(pin);
+            renderMarkers();
+            showToast(esc(pin.contributor_name) + ' added an observation');
+          }
+          if (msg.event === 'DELETE' && msg.payload && msg.payload.old_record) {
+            var old = msg.payload.old_record;
+            allPins = allPins.filter(function(p) { return String(p.id) !== String(old.id); });
+            renderMarkers();
+          }
+        } catch(err) {}
+      };
+      ws.onclose = function() {
+        // Reconnect after 3s if still online
+        if (isOnline) setTimeout(connect, 3000);
+      };
+    }
+    connect();
+    window.addEventListener('online', function() { if (ws.readyState !== WebSocket.OPEN) connect(); });
+  }
+
   // CITY TABS
   function initTabs() {
-    document.querySelectorAll('.city-tab').forEach(function(tab) {
+    var tabs = document.querySelectorAll('.city-tab');
+    tabs.forEach(function(tab) {
       tab.addEventListener('click', function() {
         haptic();
-        document.querySelectorAll('.city-tab').forEach(function(t) { t.classList.remove('active'); });
+        tabs.forEach(function(t) { t.classList.remove('active'); });
         tab.classList.add('active');
         currentCity = tab.dataset.city;
         renderMarkers();
@@ -980,14 +1036,18 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
         '</div>';
     }).join('');
 
-    body.querySelectorAll('.feed-item').forEach(function(el) {
-      el.addEventListener('click', function(e) {
-        if (e.target.classList.contains('feed-item-img')) return;
-        var lat = parseFloat(el.dataset.lat), lng = parseFloat(el.dataset.lng);
-        var pin = allPins.find(function(p) { return p.id === el.dataset.id; });
-        if (pin) { closePanel('feed-panel'); openDetail(pin); }
-        else if (lat && lng) { closePanel('feed-panel'); map.setView([lat, lng], 16, { animate: true }); }
-      });
+  }
+
+  // Single delegated listener for feed clicks — wired once in boot
+  function initFeedDelegate() {
+    document.getElementById('feed-body').addEventListener('click', function(e) {
+      if (e.target.classList.contains('feed-item-img')) return;
+      var el = e.target.closest('.feed-item');
+      if (!el) return;
+      var lat = parseFloat(el.dataset.lat), lng = parseFloat(el.dataset.lng);
+      var pin = allPins.find(function(p) { return String(p.id) === el.dataset.id; });
+      if (pin) { closePanel('feed-panel'); openDetail(pin); }
+      else if (lat && lng) { closePanel('feed-panel'); map.setView([lat, lng], 16, { animate: true }); }
     });
   }
 
@@ -1093,6 +1153,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     initMap();
     initTabs();
     initPhoto();
+    initFeedDelegate();
     updateOnlineStatus();
     loadData();
 
@@ -1161,7 +1222,20 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
       renderFeed();
       openPanel('feed-panel');
     });
-    document.getElementById('feed-search').addEventListener('input', renderFeed);
+    var searchDebounce;
+    var feedSearchEl = document.getElementById('feed-search');
+    var feedSearchClear = document.getElementById('feed-search-clear');
+    feedSearchEl.addEventListener('input', function() {
+      feedSearchClear.classList.toggle('visible', feedSearchEl.value.length > 0);
+      clearTimeout(searchDebounce);
+      searchDebounce = setTimeout(renderFeed, 200);
+    });
+    feedSearchClear.addEventListener('click', function() {
+      feedSearchEl.value = '';
+      feedSearchClear.classList.remove('visible');
+      renderFeed();
+      feedSearchEl.focus();
+    });
     document.getElementById('close-add').addEventListener('click', function() { closePanel('add-panel'); resetForm(); });
     document.getElementById('close-feed').addEventListener('click', function() { closePanel('feed-panel'); });
     document.getElementById('close-detail').addEventListener('click', function() { closePanel('detail-panel'); });
