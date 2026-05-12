@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Field Notes</title>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin/>
 <link rel="preconnect" href="https://mjirubqqgvemwxdixzsq.supabase.co"/>
@@ -721,11 +724,16 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
       attribution: '© OpenStreetMap © CARTO', maxZoom: 19
     }).addTo(map);
 
-    map.whenReady(function() {
-      setTimeout(function() {
-        document.getElementById('map-loading').classList.add('hidden');
-      }, 300);
-    });
+    // Hide loading screen as soon as map container is ready (300ms feels intentional),
+    // with a hard fallback at 2s in case whenReady never fires (e.g. tile CDN hang).
+    var loadingHidden = false;
+    function hideMapLoading() {
+      if (loadingHidden) return;
+      loadingHidden = true;
+      document.getElementById('map-loading').classList.add('hidden');
+    }
+    map.whenReady(function() { setTimeout(hideMapLoading, 300); });
+    setTimeout(hideMapLoading, 2000); // fallback — always clears after 2s
   }
 
   function setActiveCity(cityName) {
