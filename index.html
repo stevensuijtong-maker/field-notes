@@ -202,8 +202,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 
 /* MARKERS */
 .marker-dot { border-radius: 50%; }
-.dot-photo { width: 16px; height: 16px; background: #e8452a; box-shadow: 0 0 14px rgba(232,69,42,0.7); border: 2px solid rgba(255,255,255,0.5); }
-.dot-note { width: 11px; height: 11px; background: #e8452a; box-shadow: 0 0 10px rgba(232,69,42,0.5); border: 2px solid rgba(255,255,255,0.3); opacity: 0.8; }
+.dot-photo { width: 16px; height: 16px; background: #e8452a; outline: 2px solid rgba(255,255,255,0.5); outline-offset: 1px; }
+.dot-note { width: 11px; height: 11px; background: #e8452a; outline: 2px solid rgba(255,255,255,0.3); outline-offset: 1px; opacity: 0.8; }
 
 /* LEAFLET */
 .leaflet-tile { filter: saturate(1.1) brightness(1.02); }
@@ -723,8 +723,10 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
       zoomControl: false
     });
     L.control.zoom({ position: 'bottomleft' }).addTo(map);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      attribution: '© OpenStreetMap © CARTO', maxZoom: 19
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap © CARTO', maxZoom: 19,
+      keepBuffer: 4,           // pre-load 4 tiles beyond viewport in each direction
+      updateWhenZooming: false  // don't fetch new tiles mid-zoom-animation
     }).addTo(map);
 
     // Hide loading screen as soon as map container is ready (300ms feels intentional),
@@ -770,7 +772,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     var key = cls + '|' + c;
     if (iconCache[key]) return iconCache[key];
     var size = cls === 'dot-photo' ? 16 : 11;
-    var html = '<div style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;background:' + c + ';border:2px solid rgba(255,255,255,0.6);box-shadow:0 0 12px ' + c + '88;"></div>';
+    var html = '<div style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;background:' + c + ';outline:2px solid rgba(255,255,255,0.55);outline-offset:1px;"></div>';
     iconCache[key] = L.divIcon({ className: '', html: html, iconSize: [size,size], iconAnchor: [size/2,size/2] });
     return iconCache[key];
   }
@@ -1455,7 +1457,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
           // Blue dot for current location
           var locIcon = L.divIcon({
             className: '',
-            html: '<div style="width:14px;height:14px;background:#4a90d9;border-radius:50%;border:3px solid white;box-shadow:0 0 12px rgba(74,144,217,0.6);"></div>',
+            html: '<div style="width:14px;height:14px;background:#4a90d9;border-radius:50%;border:3px solid white;outline:3px solid rgba(74,144,217,0.35);outline-offset:1px;"></div>',
             iconSize: [14,14], iconAnchor: [7,7]
           });
           locateMarker = L.marker([lat, lng], { icon: locIcon }).addTo(map);
