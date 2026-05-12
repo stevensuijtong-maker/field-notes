@@ -5,8 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Field Notes</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/exifr@7.1.3/dist/lite.umd.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
+
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 :root {
@@ -223,6 +224,22 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 }
 #admin-bar.visible { transform: translateY(0); }
 #topbar.admin-active { top: 28px; }
+
+.marker-cluster { background: rgba(232,69,42,0.2) !important; }
+.marker-cluster div { background: rgba(232,69,42,0.7) !important; color: white !important; font-size: 11px !important; font-weight: 700 !important; }
+.marker-cluster-small { background: rgba(232,69,42,0.2) !important; }
+.marker-cluster-small div { background: rgba(232,69,42,0.6) !important; }
+.marker-cluster-medium { background: rgba(232,69,42,0.25) !important; }
+.marker-cluster-medium div { background: rgba(232,69,42,0.7) !important; }
+
+#queue-badge {
+  position: fixed; top: 60px; right: 12px; z-index: 102;
+  background: var(--danger); color: white;
+  font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 4px 8px; border-radius: 2px;
+  display: none;
+}
+#queue-badge.visible { display: block; }
 </style>
 </head>
 <body>
@@ -255,6 +272,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 </div>
 
 <!-- BOTTOM CONTROLS -->
+<div id="queue-badge">Queued observations pending</div>
 <div id="bottom-controls">
   <div id="city-tabs">
     <div class="city-tab active" data-city="all">All</div>
@@ -268,6 +286,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   <div id="action-row">
     <button id="add-btn">+ Add Observation</button>
     <button id="feed-btn">☰</button>
+    <button id="contrib-btn" style="padding:14px 14px;background:var(--surface2);color:var(--text-dim);border:1px solid var(--border);border-radius:2px;font-size:13px;cursor:pointer" title="Contributors">👥</button>
   </div>
 </div>
 
@@ -335,6 +354,16 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   <div id="detail-body"></div>
 </div>
 
+
+<!-- CONTRIBUTORS PANEL -->
+<div id="contrib-panel" class="panel">
+  <div class="panel-header">
+    <span class="panel-title">Contributors</span>
+    <div class="close-btn" id="close-contrib">×</div>
+  </div>
+  <div id="contrib-body" class="panel-body"></div>
+</div>
+
 <!-- ONBOARDING OVERLAY -->
 <div id="onboard-overlay" class="hidden">
   <div class="overlay-card">
@@ -376,6 +405,9 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 <!-- TOAST -->
 <div id="toast"></div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="https://unpkg.com/exifr@7.1.3/dist/lite.umd.js"></script>
 <script>
 (function() {
   var SUPABASE_URL = 'https://mjirubqqgvemwxdixzsq.supabase.co';
@@ -386,7 +418,15 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   var map, allPins = [];
   var currentCity = 'all';
   var feedFilter = 'all';
-  var contributor = localStorage.getItem('fn_name') || '';
+  // IDENTITY — URL parameter takes priority over localStorage
+  var urlParams = new URLSearchParams(window.location.search);
+  var urlUser = urlParams.get('u');
+  var contributor = urlUser || localStorage.getItem('fn_name') || '';
+  if (urlUser) {
+    // Normalize: capitalize first letter
+    contributor = urlUser.charAt(0).toUpperCase() + urlUser.slice(1).toLowerCase();
+    localStorage.setItem('fn_name', contributor);
+  }
   var isAdmin = sessionStorage.getItem('fn_admin') === '1';
   var photoFile = null;
   var detectedLat = null, detectedLng = null, detectedCity = null;
@@ -404,6 +444,45 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     }
     return colourMap[name];
   }
+
+  // OFFLINE QUEUE
+  var offlineQueue = JSON.parse(localStorage.getItem('fn_queue') || '[]');
+
+  function saveQueue() {
+    localStorage.setItem('fn_queue', JSON.stringify(offlineQueue));
+    var badge = document.getElementById('queue-badge');
+    if (badge) {
+      if (offlineQueue.length > 0) {
+        badge.textContent = offlineQueue.length + ' observation' + (offlineQueue.length > 1 ? 's' : '') + ' queued — waiting for connection';
+        badge.classList.add('visible');
+      } else {
+        badge.classList.remove('visible');
+      }
+    }
+  }
+
+  function flushQueue() {
+    if (!isOnline || offlineQueue.length === 0) return;
+    var item = offlineQueue[0];
+    api('pins', 'POST', item).then(function(res) {
+      if (Array.isArray(res) && res[0]) {
+        allPins.unshift(res[0]);
+        renderMarkers();
+        offlineQueue.shift();
+        saveQueue();
+        if (offlineQueue.length > 0) {
+          setTimeout(flushQueue, 500);
+        } else {
+          showToast('Queued observations uploaded');
+        }
+      }
+    }).catch(function() {});
+  }
+
+  window.addEventListener('online', function() {
+    updateOnlineStatus();
+    setTimeout(flushQueue, 1000);
+  });
 
   var CITIES = {
     'all':       { center: [48.5, 10.0], zoom: 4 },
@@ -637,12 +716,17 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     return L.divIcon({ className: '', html: html, iconSize: [size,size], iconAnchor: [size/2,size/2] });
   }
 
-  var markerList = [];
+  var clusterGroup = null;
   function renderMarkers() {
-    markerList.forEach(function(m) { map.removeLayer(m); });
-    markerList = [];
-    var pins = currentCity === 'all' ? allPins : allPins.filter(function(p) { return p.city === currentCity; });
+    if (clusterGroup) { map.removeLayer(clusterGroup); }
+    clusterGroup = L.markerClusterGroup({
+      maxClusterRadius: 40,
+      spiderfyOnMaxZoom: true,
+      showCoverageOnHover: false,
+      zoomToBoundsOnClick: true
+    });
 
+    var pins = currentCity === 'all' ? allPins : allPins.filter(function(p) { return p.city === currentCity; });
     var hint = document.getElementById('map-hint');
     hint.classList.toggle('hidden', pins.length > 0);
 
@@ -650,10 +734,12 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
       if (!pin.lat || !pin.lng) return;
       var cls = pin.photo_url ? 'dot-photo' : 'dot-note';
       var colour = getContributorColour(pin.contributor_name);
-      var m = L.marker([pin.lat, pin.lng], { icon: makeIcon(cls, colour) }).addTo(map);
+      var m = L.marker([pin.lat, pin.lng], { icon: makeIcon(cls, colour) });
       m.on('click', (function(p) { return function() { openDetail(p); }; })(pin));
-      markerList.push(m);
+      clusterGroup.addLayer(m);
     });
+
+    map.addLayer(clusterGroup);
   }
 
   // DATA
@@ -773,6 +859,96 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   }
 
   // FEED
+
+
+  // PDF EXPORT
+  function exportPDF() {
+    var pins = currentCity === 'all' ? allPins : allPins.filter(function(p) { return p.city === currentCity; });
+    if (!pins.length) { showToast('No observations to export', true); return; }
+
+    var title = 'Field Notes' + (currentCity !== 'all' ? ' — ' + currentCity : '');
+    var rows = pins.map(function(p) {
+      return '<tr style="border-bottom:1px solid #eee">' +
+        '<td style="padding:12px 8px;font-size:11px;color:#888;white-space:nowrap">' + fmtDate(p.created_at) + '</td>' +
+        '<td style="padding:12px 8px;font-size:11px;font-weight:600;color:#c8b89a;text-transform:uppercase;letter-spacing:0.06em">' + esc(p.contributor_name) + '</td>' +
+        '<td style="padding:12px 8px;font-size:11px;color:#888">' + esc(p.city) + (p.label ? ' · ' + esc(p.label) : '') + '</td>' +
+        '<td style="padding:12px 8px;font-size:13px;color:#333;line-height:1.5">' + (p.note ? esc(p.note) : '<em style="color:#aaa">No note</em>') + '</td>' +
+        (p.photo_url ? '<td style="padding:8px"><img src="' + p.photo_url + '" style="width:80px;height:60px;object-fit:cover;border-radius:2px"/></td>' : '<td></td>') +
+        '</tr>';
+    }).join('');
+
+    var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + title + '</title>' +
+      '<style>body{font-family:Georgia,serif;margin:40px;color:#333}h1{font-size:24px;letter-spacing:0.1em;text-transform:uppercase;color:#c8b89a;margin-bottom:4px}h2{font-size:12px;color:#888;font-weight:normal;margin-bottom:32px;font-family:Helvetica,sans-serif;letter-spacing:0.06em}table{width:100%;border-collapse:collapse}th{text-align:left;padding:8px;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:#888;border-bottom:2px solid #eee;font-family:Helvetica,sans-serif}@media print{body{margin:20px}}</style>' +
+      '</head><body>' +
+      '<h1>' + title + '</h1>' +
+      '<h2>' + pins.length + ' observations · ' + new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) + '</h2>' +
+      '<table><thead><tr><th>Date</th><th>By</th><th>Location</th><th>Note</th><th>Photo</th></tr></thead><tbody>' +
+      rows + '</tbody></table></body></html>';
+
+    var w = window.open('', '_blank');
+    w.document.write(html);
+    w.document.close();
+    setTimeout(function() { w.print(); }, 500);
+  }
+  window.exportPDF = exportPDF;
+
+  function renderContributors() {
+    var body = document.getElementById('contrib-body');
+    var counts = {};
+    var cities = {};
+    allPins.forEach(function(p) {
+      if (!counts[p.contributor_name]) { counts[p.contributor_name] = 0; cities[p.contributor_name] = {}; }
+      counts[p.contributor_name]++;
+      cities[p.contributor_name][p.city] = true;
+    });
+
+    var names = Object.keys(counts).sort(function(a,b) { return counts[b] - counts[a]; });
+
+    if (!names.length) {
+      body.innerHTML = '<div class="feed-empty">No observations yet.</div>';
+      return;
+    }
+
+    body.innerHTML = names.map(function(name) {
+      var colour = getContributorColour(name);
+      var cityList = Object.keys(cities[name]).join(', ');
+      return '<div class="feed-item" style="display:flex;align-items:center;gap:14px;cursor:default" data-contributor="' + esc(name) + '">' +
+        '<div style="width:14px;height:14px;border-radius:50%;background:' + colour + ';flex-shrink:0;box-shadow:0 0 8px ' + colour + '88"></div>' +
+        '<div style="flex:1">' +
+        '<div style="font-size:13px;color:var(--text);margin-bottom:3px">' + esc(name) + '</div>' +
+        '<div style="font-size:11px;color:var(--text-dim)">' + counts[name] + ' observation' + (counts[name] !== 1 ? 's' : '') + ' · ' + cityList + '</div>' +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:8px">' +
+        '<div style="font-size:20px;font-weight:700;color:var(--accent);font-family:var(--font-display)">' + counts[name] + '</div>' +
+        (isAdmin ? '<button class="delete-user-btn" data-name="' + esc(name) + '" style="padding:6px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;color:var(--danger);font-size:10px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer">Delete All</button>' : '') +
+        '</div>' +
+        '</div>';
+    }).join('') +
+    '<div style="padding:20px;border-top:1px solid var(--border);margin-top:8px">' +
+    '<button onclick="exportPDF()" style="width:100%;padding:13px;background:var(--accent);color:#0e0e0e;border:none;border-radius:2px;font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer">Export PDF</button>' +
+    '</div>';
+
+    // Wire delete user buttons
+    if (isAdmin) {
+      body.querySelectorAll('.delete-user-btn').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          var name = btn.dataset.name;
+          var count = counts[name];
+          if (!confirm('Delete all ' + count + ' observation' + (count !== 1 ? 's' : '') + ' by ' + name + '? This cannot be undone.')) return;
+          // Delete all pins by this contributor
+          api('pins?contributor_name=eq.' + encodeURIComponent(name), 'DELETE').then(function() {
+            allPins = allPins.filter(function(p) { return p.contributor_name !== name; });
+            renderMarkers();
+            renderContributors();
+            showToast('Deleted all observations by ' + name);
+            haptic();
+          }).catch(function(e) { showToast('Error: ' + e.message, true); });
+        });
+      });
+    }
+  }
+
   function renderFeed() {
     var body = document.getElementById('feed-body');
     var searchEl = document.getElementById('feed-search');
@@ -830,7 +1006,25 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   // SUBMIT
   function submitPin() {
     if (!contributor) { showNameOverlay(); return; }
-    if (!isOnline) { showToast('No connection — cannot save right now', true); return; }
+    // Queue if offline
+    if (!isOnline) {
+      var queueItem = {
+        contributor_name: contributor,
+        note: document.getElementById('note-input').value.trim() || null,
+        label: document.getElementById('label-input').value.trim() || null,
+        photo_url: null,
+        city: detectedCity || detectCity(map.getCenter().lat, map.getCenter().lng),
+        lat: detectedLat || map.getCenter().lat,
+        lng: detectedLng || map.getCenter().lng
+      };
+      offlineQueue.push(queueItem);
+      saveQueue();
+      closePanel('add-panel');
+      resetForm();
+      showToast('No connection — observation queued for upload');
+      haptic();
+      return;
+    }
 
     if (!detectedLat || !detectedLng) {
       var c = map.getCenter();
@@ -895,7 +1089,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   }
 
   // BOOT
-  document.addEventListener('DOMContentLoaded', function() {
+  window.addEventListener('load', function() {
     initMap();
     initTabs();
     initPhoto();
@@ -911,6 +1105,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     } else {
       document.getElementById('name-btn').textContent = contributor;
     }
+    // If URL user set, always update button
+    if (urlUser) document.getElementById('name-btn').textContent = contributor;
 
     document.getElementById('onboard-btn').addEventListener('click', function() {
       localStorage.setItem('fn_onboarded', '1');
@@ -1015,6 +1211,41 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
         document.getElementById('lightbox-img').src = '';
       }
     });
+
+
+
+    // CONTRIBUTORS PANEL
+    document.getElementById('contrib-btn').addEventListener('click', function() {
+      renderContributors();
+      openPanel('contrib-panel');
+    });
+    document.getElementById('close-contrib').addEventListener('click', function() { closePanel('contrib-panel'); });
+
+    // Init queue badge
+    saveQueue();
+    // Try flush on load if online
+    if (isOnline && offlineQueue.length > 0) setTimeout(flushQueue, 2000);
+
+    // AUTO CITY DETECTION ON LOAD
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(function(pos) {
+        var lat = pos.coords.latitude, lng = pos.coords.longitude;
+        var detected = detectCity(lat, lng);
+        if (detected !== 'Unknown') {
+          // Find and activate matching tab
+          var tabs = document.querySelectorAll('.city-tab');
+          tabs.forEach(function(tab) {
+            if (tab.dataset.city === detected) {
+              document.querySelectorAll('.city-tab').forEach(function(t) { t.classList.remove('active'); });
+              tab.classList.add('active');
+              currentCity = detected;
+              renderMarkers();
+              map.setView(CITIES[detected].center, CITIES[detected].zoom, { animate: true });
+            }
+          });
+        }
+      }, null, { timeout: 5000, maximumAge: 60000 });
+    }
 
     // CURRENT LOCATION BUTTON
     var locateBtn = document.getElementById('locate-btn');
