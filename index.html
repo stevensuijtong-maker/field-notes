@@ -81,15 +81,10 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 #map-hint {
   position: fixed; top: 38%; left: 50%; transform: translate(-50%, -50%);
   z-index: 50; text-align: center; pointer-events: none;
-  padding: 20px 28px;
-  background: rgba(14,14,14,0.72);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  padding: 20px;
 }
 #map-hint.hidden { display: none; }
-#map-hint p { font-size: 13px; color: var(--text); line-height: 1.9; letter-spacing: 0.04em; }
+#map-hint p { font-size: 13px; color: #3a3530; line-height: 1.9; letter-spacing: 0.04em; text-shadow: 0 1px 3px rgba(255,255,255,0.8); }
 
 /* PANELS */
 .panel { position: fixed; inset: 0; z-index: 200; background: var(--bg); transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.16,1,0.3,1); overflow-y: auto; -webkit-overflow-scrolling: touch; }
@@ -267,8 +262,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 
 <!-- MAP EMPTY HINT -->
 <div id="map-hint">
-  <p style="color:var(--text-dim);font-size:11px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px">No observations yet</p>
-  <p>Tap <strong style="color:var(--accent);letter-spacing:0.06em">+ Add Observation</strong> to begin.</p>
+  <p style="color:#8a7e76;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;text-shadow:0 1px 3px rgba(255,255,255,0.8)">No observations yet</p>
+  <p>Tap <strong style="color:#b07d4a;letter-spacing:0.06em">+ Add Observation</strong> to begin.</p>
 </div>
 
 <!-- TOPBAR -->
