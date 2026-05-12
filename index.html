@@ -721,10 +721,48 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
       attribution: '© OpenStreetMap © CARTO', maxZoom: 19
     }).addTo(map);
+  }
 
-    map.whenReady(function() {
-      document.getElementById('map-loading').classList.add('hidden');
+  function setActiveCity(cityName) {
+    var tabs = document.querySelectorAll('.city-tab');
+    tabs.forEach(function(t) { t.classList.remove('active'); });
+    tabs.forEach(function(t) {
+      if (t.dataset.city === cityName) t.classList.add('active');
     });
+    currentCity = cityName;
+    renderMarkers();
+    var c = CITIES[cityName] || CITIES['St. Louis'];
+    map.setView(c.center, c.zoom, { animate: false });
+  }
+
+  function initCityDetection() {
+    var done = false;
+    var fallbackTimer = setTimeout(function() {
+      if (!done) { done = true; setActiveCity('St. Louis'); document.getElementById('map-loading').classList.add('hidden'); }
+    }, 3000);
+
+    if (!navigator.geolocation) {
+      clearTimeout(fallbackTimer);
+      setActiveCity('St. Louis');
+      document.getElementById('map-loading').classList.add('hidden');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(function(pos) {
+      if (done) return;
+      done = true;
+      clearTimeout(fallbackTimer);
+      var lat = pos.coords.latitude, lng = pos.coords.longitude;
+      var detected = detectCity(lat, lng);
+      setActiveCity(detected !== 'Unknown' ? detected : 'St. Louis');
+      document.getElementById('map-loading').classList.add('hidden');
+    }, function() {
+      if (done) return;
+      done = true;
+      clearTimeout(fallbackTimer);
+      setActiveCity('St. Louis');
+      document.getElementById('map-loading').classList.add('hidden');
+    }, { timeout: 3000, maximumAge: 60000 });
   }
 
   var iconCache = {};
@@ -1378,25 +1416,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     if (isOnline && offlineQueue.length > 0) setTimeout(flushQueue, 2000);
 
     // AUTO CITY DETECTION ON LOAD
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(function(pos) {
-        var lat = pos.coords.latitude, lng = pos.coords.longitude;
-        var detected = detectCity(lat, lng);
-        if (detected !== 'Unknown') {
-          // Find and activate matching tab
-          var tabs = document.querySelectorAll('.city-tab');
-          tabs.forEach(function(tab) {
-            if (tab.dataset.city === detected) {
-              document.querySelectorAll('.city-tab').forEach(function(t) { t.classList.remove('active'); });
-              tab.classList.add('active');
-              currentCity = detected;
-              renderMarkers();
-              map.setView(CITIES[detected].center, CITIES[detected].zoom, { animate: true });
-            }
-          });
-        }
-      }, null, { timeout: 5000, maximumAge: 60000 });
-    }
+    initCityDetection();
 
     // CURRENT LOCATION BUTTON
     var locateBtn = document.getElementById('locate-btn');
