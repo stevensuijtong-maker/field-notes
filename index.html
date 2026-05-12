@@ -727,10 +727,11 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     L.control.zoom({ position: 'bottomleft' }).addTo(map);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap © CARTO',
+      subdomains: 'abcd',  // 4 parallel CDN connections instead of 3
       maxZoom: 19, maxNativeZoom: 18,
       keepBuffer: 4,
       updateWhenZooming: false,
-      crossOrigin: true  // lets browser cache tiles across sessions
+      crossOrigin: true
     }).addTo(map);
 
     // Hide loading screen as soon as map container is ready (300ms feels intentional),
@@ -743,6 +744,28 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     }
     map.whenReady(function() { setTimeout(hideMapLoading, 300); });
     setTimeout(hideMapLoading, 2000); // fallback — always clears after 2s
+  }
+
+  // Pre-fetch tiles around a lat/lng at a given zoom level into the browser cache.
+  // Uses Image() so requests go through normal HTTP caching — free background warm-up.
+  function prewarmTiles(lat, lng, zoom, radius) {
+    var r = radius || 3;
+    var n = Math.pow(2, zoom);
+    var tx = Math.floor((lng + 180) / 360 * n);
+    var ty = Math.floor((1 - Math.log(Math.tan(lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180)) / Math.PI) / 2 * n);
+    var subs = ['a','b','c','d'];
+    var i = 0;
+    for (var x = tx - r; x <= tx + r; x++) {
+      for (var y = ty - r; y <= ty + r; y++) {
+        (function(sub, px, py) {
+          setTimeout(function() {
+            var img = new Image();
+            img.src = 'https://' + sub + '.basemaps.cartocdn.com/rastertiles/voyager/' + zoom + '/' + px + '/' + py + '.png';
+          }, i * 30); // stagger by 30ms to avoid saturating the connection
+        })(subs[i % 4], x, y);
+        i++;
+      }
+    }
   }
 
   function setActiveCity(cityName) {
@@ -832,6 +855,10 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
       if (!silent) {
         document.getElementById('map-loading').classList.add('hidden');
         initRealtime();
+        // Pre-warm tiles for the active city so first pan hits cache, not network
+        var c = CITIES[currentCity] || CITIES['St. Louis'];
+        setTimeout(function() { prewarmTiles(c.center[0], c.center[1], 13, 3); }, 500);
+        setTimeout(function() { prewarmTiles(c.center[0], c.center[1], 15, 2); }, 2000);
       }
       if (silent) showToast('Refreshed');
     }).catch(function(e) {
