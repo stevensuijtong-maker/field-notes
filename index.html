@@ -772,32 +772,53 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     return iconCache[key];
   }
 
-  var clusterGroup = null;
-  function renderMarkers() {
-    if (!clusterGroup) {
-      clusterGroup = L.markerClusterGroup({
-        maxClusterRadius: 40,
-        spiderfyOnMaxZoom: true,
-        showCoverageOnHover: false,
-        zoomToBoundsOnClick: true
-      });
-      map.addLayer(clusterGroup);
-    } else {
-      clusterGroup.clearLayers();
-    }
+  // Per-city marker layers — built once, swapped instantly on tab change
+  var markerLayers = {};
+  var CLUSTER_OPTS = { maxClusterRadius: 40, spiderfyOnMaxZoom: true, showCoverageOnHover: false, zoomToBoundsOnClick: true };
 
-    var pins = currentCity === 'all' ? allPins : allPins.filter(function(p) { return p.city === currentCity; });
-    var hint = document.getElementById('map-hint');
-    hint.classList.toggle('hidden', pins.length > 0);
+  function makeMarkerForPin(pin) {
+    var cls = pin.photo_url ? 'dot-photo' : 'dot-note';
+    var m = L.marker([pin.lat, pin.lng], { icon: makeIcon(cls, getContributorColour(pin.contributor_name)) });
+    m.on('click', (function(p) { return function() { openDetail(p); }; })(pin));
+    return m;
+  }
 
-    pins.forEach(function(pin) {
-      if (!pin.lat || !pin.lng) return;
-      var cls = pin.photo_url ? 'dot-photo' : 'dot-note';
-      var colour = getContributorColour(pin.contributor_name);
-      var m = L.marker([pin.lat, pin.lng], { icon: makeIcon(cls, colour) });
-      m.on('click', (function(p) { return function() { openDetail(p); }; })(pin));
-      clusterGroup.addLayer(m);
+  function rebuildMarkerLayers() {
+    // Remove all existing layers from map first
+    Object.keys(markerLayers).forEach(function(key) {
+      if (map.hasLayer(markerLayers[key])) map.removeLayer(markerLayers[key]);
     });
+    markerLayers = {};
+    Object.keys(CITIES).forEach(function(city) {
+      markerLayers[city] = L.markerClusterGroup(CLUSTER_OPTS);
+    });
+    allPins.forEach(function(pin) {
+      if (!pin.lat || !pin.lng) return;
+      markerLayers['all'].addLayer(makeMarkerForPin(pin));
+      if (markerLayers[pin.city]) markerLayers[pin.city].addLayer(makeMarkerForPin(pin));
+    });
+  }
+
+  // Add a single new pin to existing layers without full rebuild
+  function addPinToLayers(pin) {
+    if (!pin.lat || !pin.lng || !Object.keys(markerLayers).length) return;
+    markerLayers['all'].addLayer(makeMarkerForPin(pin));
+    if (markerLayers[pin.city]) markerLayers[pin.city].addLayer(makeMarkerForPin(pin));
+  }
+
+  // Swap which city layer is visible — O(1), no marker recreation
+  function renderMarkers() {
+    Object.keys(markerLayers).forEach(function(city) {
+      var cg = markerLayers[city];
+      if (city === currentCity) {
+        if (!map.hasLayer(cg)) map.addLayer(cg);
+      } else {
+        if (map.hasLayer(cg)) map.removeLayer(cg);
+      }
+    });
+    var count = currentCity === 'all' ? allPins.length :
+      allPins.filter(function(p) { return p.city === currentCity; }).length;
+    document.getElementById('map-hint').classList.toggle('hidden', count > 0);
   }
 
   // DATA
@@ -805,6 +826,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     if (!silent) document.getElementById('map-loading-sub').textContent = 'Loading observations…';
     api('pins?select=*&order=created_at.desc').then(function(pins) {
       allPins = Array.isArray(pins) ? pins : [];
+      rebuildMarkerLayers();
       renderMarkers();
       if (!silent) {
         document.getElementById('map-loading').classList.add('hidden');
@@ -837,12 +859,14 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
             // Ignore pins we just submitted ourselves (already in allPins)
             if (allPins.some(function(p) { return String(p.id) === String(pin.id); })) return;
             allPins.unshift(pin);
+            addPinToLayers(pin);
             renderMarkers();
             showToast(esc(pin.contributor_name) + ' added an observation');
           }
           if (msg.event === 'DELETE' && msg.payload && msg.payload.old_record) {
             var old = msg.payload.old_record;
             allPins = allPins.filter(function(p) { return String(p.id) !== String(old.id); });
+            rebuildMarkerLayers();
             renderMarkers();
           }
         } catch(err) {}
@@ -1221,6 +1245,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
       btn.disabled = false; btn.textContent = 'Add to Map';
       if (Array.isArray(res) && res[0]) {
         allPins.unshift(res[0]);
+        addPinToLayers(res[0]);
         renderMarkers();
         closePanel('add-panel');
         resetForm();
