@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Field Notes</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
@@ -66,7 +66,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 /* BOTTOM CONTROLS */
 #bottom-controls {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
-  padding: 0 20px 36px;
+  padding: 0 20px calc(36px + env(safe-area-inset-bottom));
   background: linear-gradient(to top, rgba(14,14,14,0.96) 70%, transparent);
 }
 #city-tabs { display: flex; gap: 6px; margin-bottom: 14px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
@@ -890,7 +890,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     function renderView() {
       body.innerHTML =
         '<div class="feed-item">' +
-        (pin.photo_url ? '<img class="feed-item-img" src="' + esc(pin.photo_url) + '" loading="lazy" alt=""/>' : '') +
+        (pin.photo_url ? '<img class="feed-item-img" src="' + esc(pin.photo_url) + '" loading="lazy" alt="" onerror="this.style.display=\'none\'" style="cursor:pointer"/>' : '') +
         '<div class="feed-meta"><span class="feed-contributor">' + esc(pin.contributor_name) + '</span><span class="feed-time">' + fmtDate(pin.created_at) + '</span></div>' +
         '<div class="feed-location">' + (pin.label ? esc(pin.label) + ' · ' : '') + esc(pin.city) + '</div>' +
         (pin.note ? '<div class="feed-note">' + esc(pin.note) + '</div>' : '<div class="feed-note" style="color:var(--text-dim);font-style:italic">No note</div>') +
@@ -984,7 +984,6 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     w.document.close();
     setTimeout(function() { w.print(); }, 500);
   }
-  window.exportPDF = exportPDF;
 
   function renderContributors() {
     var body = document.getElementById('contrib-body');
@@ -1014,13 +1013,33 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
         '</div>' +
         '<div style="display:flex;align-items:center;gap:8px">' +
         '<div style="font-size:20px;font-weight:700;color:var(--accent);font-family:var(--font-display)">' + counts[name] + '</div>' +
+        '<button class="share-user-btn" data-name="' + esc(name) + '" style="padding:6px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;color:var(--text-dim);font-size:11px;cursor:pointer" title="Copy link">⎘</button>' +
         (isAdmin ? '<button class="delete-user-btn" data-name="' + esc(name) + '" style="padding:6px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;color:var(--danger);font-size:10px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer">Delete All</button>' : '') +
         '</div>' +
         '</div>';
     }).join('') +
     '<div style="padding:20px;border-top:1px solid var(--border);margin-top:8px">' +
-    '<button onclick="exportPDF()" style="width:100%;padding:13px;background:var(--accent);color:#0e0e0e;border:none;border-radius:2px;font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer">Export PDF</button>' +
+    '<button id="export-pdf-btn" style="width:100%;padding:13px;background:var(--accent);color:#0e0e0e;border:none;border-radius:2px;font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer">Export PDF</button>' +
     '</div>';
+
+    // Wire export button
+    var exportBtn = body.querySelector('#export-pdf-btn');
+    if (exportBtn) exportBtn.addEventListener('click', exportPDF);
+
+    // Wire share buttons
+    body.querySelectorAll('.share-user-btn').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var name = btn.dataset.name;
+        var url = location.origin + location.pathname + '?u=' + encodeURIComponent(name.toLowerCase());
+        navigator.clipboard.writeText(url).then(function() {
+          showToast('Link copied for ' + name);
+          haptic();
+        }).catch(function() {
+          showToast(url, false);
+        });
+      });
+    });
 
     // Wire delete user buttons
     if (isAdmin) {
@@ -1068,7 +1087,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 
     body.innerHTML = pins.map(function(p) {
       return '<div class="feed-item" data-lat="' + p.lat + '" data-lng="' + p.lng + '" data-id="' + p.id + '" style="animation:fadeIn 0.2s ease both">' +
-        (p.photo_url ? '<img class="feed-item-img" src="' + esc(p.photo_url) + '" loading="lazy" alt=""/>' : '') +
+        (p.photo_url ? '<img class="feed-item-img" src="' + esc(p.photo_url) + '" loading="lazy" alt="" onerror="this.style.display=\'none\'"/>' : '') +
         '<div class="feed-meta"><span class="feed-contributor">' + esc(p.contributor_name) + '</span><span class="feed-time">' + fmtDate(p.created_at) + '</span></div>' +
         '<div class="feed-location">' + (p.label ? esc(p.label) + ' · ' : '') + esc(p.city) + '</div>' +
         (p.note ? '<div class="feed-note">' + esc(p.note) + '</div>' : '') +
