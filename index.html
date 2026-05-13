@@ -322,6 +322,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     <div class="city-tab" data-city="London">London</div>
     <div class="city-tab" data-city="Cologne">Cologne</div>
     <div class="city-tab" data-city="Venice">Venice</div>
+    <div class="city-tab" data-city="Milan">Milan</div>
   </div>
   <div id="action-row">
     <button id="add-btn">+ Add Observation</button>
@@ -528,7 +529,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     'Paris':     { center: [48.857, 2.352],  zoom: 13 },
     'London':    { center: [51.507, -0.128], zoom: 13 },
     'Cologne':   { center: [50.933, 6.950],  zoom: 13 },
-    'Venice':    { center: [45.434, 12.338], zoom: 14 }
+    'Venice':    { center: [45.434, 12.338], zoom: 14 },
+    'Milan':     { center: [45.464, 9.190],  zoom: 13 }
   };
 
   var CITY_BOUNDS = [
@@ -537,7 +539,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     { name: 'Berlin',    latMin: 52.33, latMax: 52.68, lngMin: 13.08,  lngMax: 13.77  },
     { name: 'Paris',     latMin: 48.74, latMax: 48.95, lngMin: 2.22,   lngMax: 2.47   },
     { name: 'London',    latMin: 51.38, latMax: 51.62, lngMin: -0.35,  lngMax: 0.15   },
-    { name: 'Cologne',   latMin: 50.83, latMax: 51.08, lngMin: 6.77,   lngMax: 7.16   }
+    { name: 'Cologne',   latMin: 50.83, latMax: 51.08, lngMin: 6.77,   lngMax: 7.16   },
+    { name: 'Milan',     latMin: 45.38, latMax: 45.55, lngMin: 9.03,   lngMax: 9.35   }
   ];
 
   function detectCity(lat, lng) {
