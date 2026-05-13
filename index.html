@@ -1042,12 +1042,27 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
         '<div class="feed-meta"><span class="feed-contributor">' + esc(pin.contributor_name) + '</span><span class="feed-time">' + fmtDate(pin.created_at) + '</span></div>' +
         '<div class="feed-location">' + (pin.label ? esc(pin.label) + ' · ' : '') + esc(pin.city) + '</div>' +
         (pin.note ? '<div class="feed-note">' + esc(pin.note) + '</div>' : '<div class="feed-note" style="color:var(--text-dim);font-style:italic">No note</div>') +
+        (pin.lat && pin.lng ?
+          '<button id="directions-btn" style="width:100%;margin-top:16px;padding:13px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;color:var(--text-dim);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer">↗ Directions</button>' : '') +
         (isOwner ?
-          '<div style="display:flex;gap:8px;margin-top:16px">' +
+          '<div style="display:flex;gap:8px;margin-top:8px">' +
           '<button id="edit-note-btn" style="flex:1;padding:11px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;color:var(--accent);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer">Edit Note</button>' +
           '<button id="delete-pin-btn" style="padding:11px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;color:var(--danger);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer">Delete</button>' +
           '</div>' : '') +
         '</div>';
+
+      var dirBtn = document.getElementById('directions-btn');
+      if (dirBtn) {
+        dirBtn.addEventListener('click', function() {
+          haptic();
+          var lat = pin.lat, lng = pin.lng;
+          var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+          var url = isIOS
+            ? 'https://maps.apple.com/?daddr=' + lat + ',' + lng
+            : 'https://www.google.com/maps/dir/?api=1&destination=' + lat + ',' + lng;
+          window.open(url, '_blank');
+        });
+      }
 
       if (isOwner) {
         document.getElementById('edit-note-btn').addEventListener('click', function() {
