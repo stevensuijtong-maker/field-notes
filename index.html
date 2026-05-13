@@ -151,6 +151,18 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 #location-status.error { color: var(--danger); }
 #location-status.idle { color: var(--text-dim); }
 
+/* PLACE ON MAP */
+#place-on-map-btn { width: 100%; padding: 10px; background: transparent; color: var(--text-dim); border: 1px dashed var(--border); border-radius: 2px; font-family: var(--font-body); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; margin-top: 8px; transition: color 0.15s, border-color 0.15s; }
+#place-on-map-btn:active { color: var(--accent); border-color: var(--accent); }
+#map-crosshair { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; z-index: 1000; }
+#map-crosshair::before, #map-crosshair::after { content: ''; position: absolute; background: var(--accent); }
+#map-crosshair::before { width: 1px; height: 24px; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+#map-crosshair::after { width: 24px; height: 1px; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+#map-crosshair-dot { display: none; position: absolute; top: 50%; left: 50%; width: 8px; height: 8px; background: var(--accent); border-radius: 50%; transform: translate(-50%, -50%); z-index: 1001; pointer-events: none; }
+#place-confirm-bar { display: none; position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); z-index: 1002; display: none; flex-direction: row; gap: 10px; }
+#place-confirm-btn { padding: 12px 28px; background: var(--accent); color: #0e0e0e; border: none; border-radius: 2px; font-family: var(--font-body); font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; box-shadow: 0 2px 12px rgba(0,0,0,0.5); }
+#place-cancel-btn { padding: 12px 18px; background: var(--surface2); color: var(--text-dim); border: 1px solid var(--border); border-radius: 2px; font-family: var(--font-body); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; box-shadow: 0 2px 12px rgba(0,0,0,0.5); }
+
 /* SUBMIT */
 .submit-btn { width: 100%; padding: 15px; background: var(--accent); color: #0e0e0e; border: none; border-radius: 2px; font-family: var(--font-body); font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; margin-top: 8px; transition: opacity 0.15s; }
 .submit-btn:disabled { opacity: 0.4; cursor: default; }
@@ -296,6 +308,12 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 
 <!-- MAP -->
 <div id="map"></div>
+<div id="map-crosshair"></div>
+<div id="map-crosshair-dot"></div>
+<div id="place-confirm-bar">
+  <button id="place-cancel-btn">Cancel</button>
+  <button id="place-confirm-btn">Place here</button>
+</div>
 <button id="fit-btn" title="Fit all observations">⊡</button>
 
 <!-- MAP EMPTY HINT -->
@@ -355,6 +373,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
       <div id="location-status" class="idle">
         <span id="location-text">Location will be read from your photo</span>
       </div>
+      <button id="place-on-map-btn">📍 Place on map instead</button>
     </div>
     <div class="field">
       <label>Label <span style="color:var(--text-dim);font-size:9px;letter-spacing:0;text-transform:none">optional</span></label>
@@ -658,6 +677,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     var el = document.getElementById('location-status');
     el.className = state;
     document.getElementById('location-text').textContent = text;
+    var placeBtn = document.getElementById('place-on-map-btn');
+    if (placeBtn) placeBtn.style.display = state === 'found' ? 'none' : 'block';
   }
 
   // GPS — lazy-load exifr only when a photo is first selected
@@ -1492,6 +1513,32 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
       feedSearchEl.focus();
     });
     document.getElementById('close-add').addEventListener('click', function() { closePanel('add-panel'); resetForm(); });
+
+    // TAP-TO-PLACE
+    var placingOnMap = false;
+    function enterPlaceMode() {
+      placingOnMap = true;
+      closePanel('add-panel');
+      document.getElementById('map-crosshair').style.display = 'block';
+      document.getElementById('map-crosshair-dot').style.display = 'block';
+      document.getElementById('place-confirm-bar').style.display = 'flex';
+    }
+    function exitPlaceMode(confirm) {
+      placingOnMap = false;
+      document.getElementById('map-crosshair').style.display = 'none';
+      document.getElementById('map-crosshair-dot').style.display = 'none';
+      document.getElementById('place-confirm-bar').style.display = 'none';
+      if (confirm) {
+        var c = map.getCenter();
+        detectedLat = c.lat; detectedLng = c.lng;
+        detectedCity = detectCity(c.lat, c.lng);
+        setLocStatus('found', '📍 ' + (detectedCity || 'Custom location') + ' — placed on map');
+      }
+      openPanel('add-panel');
+    }
+    document.getElementById('place-on-map-btn').addEventListener('click', function() { enterPlaceMode(); });
+    document.getElementById('place-confirm-btn').addEventListener('click', function() { haptic(); exitPlaceMode(true); });
+    document.getElementById('place-cancel-btn').addEventListener('click', function() { exitPlaceMode(false); });
     document.getElementById('close-feed').addEventListener('click', function() { closePanel('feed-panel'); });
     document.getElementById('close-detail').addEventListener('click', function() { closePanel('detail-panel'); });
     document.getElementById('submit-btn').addEventListener('click', submitPin);
