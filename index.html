@@ -7,6 +7,10 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Field Notes</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Field Notes">
+<meta name="theme-color" content="#0e0e0e">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin/>
 <link rel="preconnect" href="https://mjirubqqgvemwxdixzsq.supabase.co"/>
 <link rel="preconnect" href="https://basemaps.cartocdn.com" crossorigin/>
@@ -214,19 +218,33 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 .leaflet-control-attribution { background: rgba(0,0,0,0.4) !important; color: #444 !important; font-size: 9px !important; }
 
 
-#locate-btn {
-  position: fixed; bottom: 140px; right: 12px; z-index: 100;
+/* FIT + LOCATE buttons stacked on right */
+#fit-btn, #locate-btn {
+  position: fixed; right: 12px; z-index: 100;
   width: 36px; height: 36px;
   background: var(--surface2); border: 1px solid var(--border);
   border-radius: 2px; color: var(--text-dim);
-  font-size: 16px; cursor: pointer;
+  font-size: 15px; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  transition: all 0.2s; box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
 }
-#locate-btn:active { background: var(--surface); }
+#fit-btn { bottom: 184px; font-size: 13px; }
+#locate-btn { bottom: 140px; font-size: 16px; }
+#fit-btn:active, #locate-btn:active { background: var(--surface); }
 #locate-btn.locating { color: var(--accent); border-color: var(--accent); animation: pulse 1s infinite; }
 #locate-btn.found { color: var(--accent2); border-color: var(--accent2); }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+/* Feed badge */
+#feed-btn { position: relative; }
+#feed-badge { position: absolute; top: 5px; right: 5px; min-width: 16px; height: 16px; background: var(--danger); color: #fff; font-size: 9px; font-weight: 700; border-radius: 8px; padding: 0 4px; display: none; align-items: center; justify-content: center; pointer-events: none; }
+#feed-badge.visible { display: flex; }
+
+/* Feed date group headers */
+.feed-date-header { padding: 10px 20px 5px; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-dim); background: var(--bg); position: sticky; top: 0; z-index: 2; border-bottom: 1px solid var(--border); }
+
+/* City tab counts */
+.tab-count { font-size: 9px; opacity: 0.6; margin-left: 3px; }
 
 #feed-search:focus { border-color: var(--accent); }
 #feed-search-wrap { position: relative; }
@@ -276,6 +294,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 
 <!-- MAP -->
 <div id="map"></div>
+<button id="fit-btn" title="Fit all observations">⊡</button>
 
 <!-- MAP EMPTY HINT -->
 <div id="map-hint">
@@ -304,7 +323,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   </div>
   <div id="action-row">
     <button id="add-btn">+ Add Observation</button>
-    <button id="feed-btn">☰</button>
+    <button id="feed-btn">☰<span id="feed-badge"></span></button>
     <button id="contrib-btn" style="padding:14px 14px;background:var(--surface2);color:var(--text-dim);border:1px solid var(--border);border-radius:2px;font-size:13px;cursor:pointer" title="Contributors">👥</button>
   </div>
 </div>
@@ -804,6 +823,32 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     return iconCache[key];
   }
 
+  // Feed badge — tracks unseen observation count
+  var feedSeenCount = parseInt(localStorage.getItem('fn_feed_seen') || '0');
+  function updateFeedBadge() {
+    var unseen = Math.max(0, allPins.length - feedSeenCount);
+    var badge = document.getElementById('feed-badge');
+    if (!badge) return;
+    if (unseen > 0) { badge.textContent = unseen > 9 ? '9+' : unseen; badge.classList.add('visible'); }
+    else { badge.classList.remove('visible'); }
+  }
+  function markFeedSeen() {
+    feedSeenCount = allPins.length;
+    localStorage.setItem('fn_feed_seen', feedSeenCount);
+    updateFeedBadge();
+  }
+
+  // City tab counts
+  function updateTabCounts() {
+    document.querySelectorAll('.city-tab').forEach(function(tab) {
+      var city = tab.dataset.city;
+      var base = tab.dataset.label || tab.querySelector('.tab-name') && tab.querySelector('.tab-name').textContent || tab.textContent.replace(/\d+$/, '').trim();
+      tab.dataset.label = base;
+      var count = city === 'all' ? allPins.length : allPins.filter(function(p) { return p.city === city; }).length;
+      tab.innerHTML = base + (count > 0 ? ' <span class="tab-count">' + count + '</span>' : '');
+    });
+  }
+
   var clusterGroup = null;
 
   function makeMarkerForPin(pin) {
@@ -852,10 +897,11 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
       allPins = Array.isArray(pins) ? pins : [];
       rebuildMarkerLayers();
       renderMarkers();
+      updateTabCounts();
+      updateFeedBadge();
       if (!silent) {
         document.getElementById('map-loading').classList.add('hidden');
         initRealtime();
-        // Pre-warm tiles for the active city so first pan hits cache, not network
         var c = CITIES[currentCity] || CITIES['St. Louis'];
         setTimeout(function() { prewarmTiles(c.center[0], c.center[1], 13, 3); }, 500);
         setTimeout(function() { prewarmTiles(c.center[0], c.center[1], 15, 2); }, 2000);
@@ -873,10 +919,12 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     if (realtimeStarted) return;
     realtimeStarted = true;
     var wsUrl = SUPABASE_URL.replace('https://', 'wss://') + '/realtime/v1/websocket?apikey=' + SUPABASE_KEY + '&vsn=1.0.0';
-    var ws;
+    var ws; var wsEverOpen = false;
     function connect() {
       ws = new WebSocket(wsUrl);
       ws.onopen = function() {
+        if (wsEverOpen) showToast('Live updates restored');
+        wsEverOpen = true;
         ws.send(JSON.stringify({ topic: 'realtime:public:pins', event: 'phx_join', payload: {}, ref: '1' }));
       };
       ws.onmessage = function(e) {
@@ -889,6 +937,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
             allPins.unshift(pin);
             addPinToLayers(pin);
             renderMarkers();
+            updateTabCounts();
+            updateFeedBadge();
             showToast(esc(pin.contributor_name) + ' added an observation');
           }
           if (msg.event === 'DELETE' && msg.payload && msg.payload.old_record) {
@@ -896,6 +946,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
             allPins = allPins.filter(function(p) { return String(p.id) !== String(old.id); });
             rebuildMarkerLayers();
             renderMarkers();
+            updateTabCounts();
+            updateFeedBadge();
           }
         } catch(err) {}
       };
@@ -1156,6 +1208,18 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     }
   }
 
+  function fmtDateGroup(dateStr) {
+    if (!dateStr) return '';
+    var d = new Date(dateStr);
+    var now = new Date();
+    var todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    var pinStart = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    var diff = todayStart - pinStart;
+    if (diff === 0) return 'Today';
+    if (diff === 86400000) return 'Yesterday';
+    return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  }
+
   function renderFeed() {
     var body = document.getElementById('feed-body');
     var scrollTop = body.scrollTop;
@@ -1179,15 +1243,23 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
       return;
     }
 
-    body.innerHTML = pins.map(function(p) {
-      return '<div class="feed-item" data-lat="' + p.lat + '" data-lng="' + p.lng + '" data-id="' + p.id + '" style="animation:fadeIn 0.2s ease both">' +
+    // Build date-grouped HTML
+    var html = '';
+    var lastGroup = null;
+    pins.forEach(function(p) {
+      var group = fmtDateGroup(p.created_at);
+      if (group !== lastGroup) {
+        html += '<div class="feed-date-header">' + group + '</div>';
+        lastGroup = group;
+      }
+      html += '<div class="feed-item" data-lat="' + p.lat + '" data-lng="' + p.lng + '" data-id="' + p.id + '">' +
         (p.photo_url ? '<img class="feed-item-img" src="' + esc(p.photo_url) + '" loading="lazy" alt="" onerror="this.style.display=\'none\'"/>' : '') +
         '<div class="feed-meta"><span class="feed-contributor">' + esc(p.contributor_name) + '</span><span class="feed-time">' + fmtDate(p.created_at) + '</span></div>' +
         '<div class="feed-location">' + (p.label ? esc(p.label) + ' · ' : '') + esc(p.city) + '</div>' +
         (p.note ? '<div class="feed-note">' + esc(p.note) + '</div>' : '') +
         '</div>';
-    }).join('');
-
+    });
+    body.innerHTML = html;
     body.scrollTop = scrollTop;
   }
 
@@ -1383,6 +1455,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
       if (!allPins.length) showFeedSkeleton();
       else renderFeed();
       openPanel('feed-panel');
+      markFeedSeen();
     });
     var searchDebounce;
     var feedSearchEl = document.getElementById('feed-search');
@@ -1464,6 +1537,16 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 
     // AUTO CITY DETECTION ON LOAD
     initCityDetection();
+
+    // FIT ALL OBSERVATIONS BUTTON
+    document.getElementById('fit-btn').addEventListener('click', function() {
+      var visible = (currentCity === 'all' ? allPins : allPins.filter(function(p) { return p.city === currentCity; }))
+        .filter(function(p) { return p.lat && p.lng; });
+      if (!visible.length) { showToast('No observations to fit'); return; }
+      map.fitBounds(L.latLngBounds(visible.map(function(p) { return [p.lat, p.lng]; })),
+        { padding: [50, 50], maxZoom: 16, animate: true });
+      haptic();
+    });
 
     // CURRENT LOCATION BUTTON
     var locateBtn = document.getElementById('locate-btn');
