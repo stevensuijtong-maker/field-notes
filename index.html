@@ -152,9 +152,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 #location-status.idle { color: var(--text-dim); }
 
 /* PIN LABELS */
-.pin-marker-wrap { overflow: visible !important; }
-.pin-label-text { display: none; position: absolute; left: calc(100% + 5px); top: 50%; transform: translateY(-50%); white-space: nowrap; font-size: 10px; font-family: var(--font-body); color: var(--text); letter-spacing: 0.06em; text-transform: uppercase; background: rgba(14,14,14,0.82); padding: 2px 6px; border-radius: 2px; pointer-events: none; max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
-#map.show-labels .pin-label-text { display: block; }
+.pin-tooltip { background: rgba(14,14,14,0.85) !important; border: none !important; border-radius: 2px !important; box-shadow: none !important; color: var(--text) !important; font-family: var(--font-body) !important; font-size: 10px !important; letter-spacing: 0.06em !important; text-transform: uppercase !important; padding: 2px 6px !important; white-space: nowrap !important; pointer-events: none !important; }
+.pin-tooltip::before { display: none !important; }
 
 /* PLACE ON MAP */
 #place-on-map-btn { width: 100%; padding: 10px; background: transparent; color: var(--text-dim); border: 1px dashed var(--border); border-radius: 2px; font-family: var(--font-body); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; margin-top: 8px; transition: color 0.15s, border-color 0.15s; }
@@ -794,11 +793,6 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     }
     map.whenReady(function() { setTimeout(hideMapLoading, 300); });
 
-    // Show pin labels at close zoom
-    function updateLabelVisibility() {
-      document.getElementById('map').classList.toggle('show-labels', map.getZoom() >= 15);
-    }
-    map.on('zoomend', updateLabelVisibility);
     setTimeout(hideMapLoading, 2000); // fallback — always clears after 2s
   }
 
@@ -898,13 +892,9 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   }
   function makeMarkerForPin(pin) {
     var cls = pin.photo_url ? 'dot-photo' : 'dot-note';
-    var c = getContributorColour(pin.contributor_name);
-    var size = cls === 'dot-photo' ? 16 : 11;
-    var dotHtml = '<div style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;background:' + c + ';outline:2px solid rgba(255,255,255,0.55);outline-offset:1px;"></div>';
+    var m = L.marker([pin.lat, pin.lng], { icon: makeIcon(cls, getContributorColour(pin.contributor_name)) });
     var lbl = makeLabelText(pin);
-    var labelHtml = lbl ? '<div class="pin-label-text">' + esc(lbl) + '</div>' : '';
-    var icon = L.divIcon({ className: 'pin-marker-wrap', html: dotHtml + labelHtml, iconSize: [size, size], iconAnchor: [size/2, size/2] });
-    var m = L.marker([pin.lat, pin.lng], { icon: icon });
+    if (lbl) m.bindTooltip(lbl, { permanent: true, direction: 'right', className: 'pin-tooltip', offset: [8, 0] });
     m.on('click', (function(p) { return function() { openDetail(p); }; })(pin));
     return m;
   }
