@@ -163,7 +163,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 #map-crosshair::before { width: 1px; height: 24px; left: 50%; top: 50%; transform: translate(-50%, -50%); }
 #map-crosshair::after { width: 24px; height: 1px; left: 50%; top: 50%; transform: translate(-50%, -50%); }
 #map-crosshair-dot { display: none; position: absolute; top: 50%; left: 50%; width: 8px; height: 8px; background: var(--accent); border-radius: 50%; transform: translate(-50%, -50%); z-index: 1001; pointer-events: none; }
-#place-confirm-bar { display: none; position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); z-index: 1002; display: none; flex-direction: row; gap: 10px; }
+#place-confirm-bar { display: none; position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); z-index: 1002; flex-direction: row; gap: 10px; }
 #place-confirm-btn { padding: 12px 28px; background: var(--accent); color: #0e0e0e; border: none; border-radius: 2px; font-family: var(--font-body); font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; box-shadow: 0 2px 12px rgba(0,0,0,0.5); }
 #place-cancel-btn { padding: 12px 18px; background: var(--surface2); color: var(--text-dim); border: 1px solid var(--border); border-radius: 2px; font-family: var(--font-body); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; box-shadow: 0 2px 12px rgba(0,0,0,0.5); }
 
@@ -294,11 +294,45 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   display: none;
 }
 #queue-badge.visible { display: block; }
+
+/* DETAIL PANEL */
+.detail-actions { display: flex; gap: 8px; margin-top: 8px; }
+.detail-btn { padding: 11px 14px; border-radius: 2px; font-family: var(--font-body); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; }
+.detail-btn-full { flex: 1; padding: 13px; }
+.detail-btn-secondary { background: var(--surface2); border: 1px solid var(--border); color: var(--text-dim); }
+.detail-btn-edit { background: var(--surface2); border: 1px solid var(--border); color: var(--accent); }
+.detail-btn-accent { background: var(--accent); border: none; color: #0e0e0e; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; }
+.detail-btn-danger { background: var(--surface2); border: 1px solid var(--border); color: var(--danger); }
+.detail-btn-danger-fill { background: var(--danger); border: none; color: white; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; }
+.detail-directions-btn { width: 100%; margin-top: 16px; }
+.detail-edit-wrap { padding: 20px; }
+.detail-edit-area { width: 100%; min-height: 140px; background: var(--surface); border: 1px solid var(--accent); border-radius: 2px; color: var(--text); font-family: var(--font-body); font-size: 15px; padding: 12px; outline: none; resize: none; line-height: 1.5; margin-bottom: 12px; -webkit-appearance: none; }
+.detail-confirm { padding: 40px 20px; text-align: center; }
+.detail-confirm-msg { font-size: 14px; color: var(--text); margin-bottom: 20px; line-height: 1.6; }
+.detail-confirm-sub { color: var(--text-dim); font-size: 12px; display: block; margin-top: 4px; }
+
+/* CONTRIBUTORS PANEL */
+.contrib-item { display: flex; align-items: center; gap: 14px; cursor: default; }
+.contrib-dot { width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: rgba(255,255,255,0.9); letter-spacing: 0; font-family: var(--font-body); }
+.contrib-info { flex: 1; }
+.contrib-name { font-size: 13px; color: var(--text); margin-bottom: 3px; }
+.contrib-meta { font-size: 11px; color: var(--text-dim); }
+.contrib-actions { display: flex; align-items: center; gap: 8px; }
+.contrib-count { font-size: 20px; font-weight: 700; color: var(--accent); font-family: var(--font-display); }
+.contrib-btn { padding: 6px 10px; background: var(--surface2); border: 1px solid var(--border); border-radius: 2px; font-size: 11px; cursor: pointer; }
+.contrib-share-btn { color: var(--text-dim); }
+.contrib-delete-btn { color: var(--danger); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; }
+.contrib-footer { padding: 20px; border-top: 1px solid var(--border); margin-top: 8px; }
+.contrib-export-btn { width: 100%; padding: 13px; background: var(--accent); color: #0e0e0e; border: none; border-radius: 2px; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; }
+#load-more-btn { width: 100%; padding: 14px; background: none; border: 1px solid var(--border); border-radius: 2px; color: var(--text-dim); font-family: var(--font-body); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; margin: 4px 0; }
+#load-more-btn:active { background: var(--surface); }
+#load-more-btn:disabled { opacity: 0.4; cursor: default; }
+mark { background: rgba(200,184,154,0.25); color: inherit; border-radius: 2px; padding: 0 1px; }
 </style>
 </head>
 <body>
 
-<button id="locate-btn" title="My location">◎</button>
+<button id="locate-btn" title="My location" aria-label="Show my location">◎</button>
 <div id="admin-bar">Admin Mode Active</div>
 <!-- MAP LOADING -->
 <div id="map-loading">
@@ -318,7 +352,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   <button id="place-cancel-btn">Cancel</button>
   <button id="place-confirm-btn">Place here</button>
 </div>
-<button id="fit-btn" title="Fit all observations">⊡</button>
+<button id="fit-btn" title="Fit all observations" aria-label="Fit all observations on map">⊡</button>
 
 <!-- MAP EMPTY HINT -->
 <div id="map-hint">
@@ -329,27 +363,18 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 <!-- TOPBAR -->
 <div id="topbar">
   <div id="title">Field Notes</div>
-  <button id="admin-btn" title="Admin">⚙</button>
-  <button id="name-btn">— set name</button>
+  <button id="admin-btn" title="Admin" aria-label="Admin settings">⚙</button>
+  <button id="name-btn" aria-label="Set your name">— set name</button>
 </div>
 
 <!-- BOTTOM CONTROLS -->
 <div id="queue-badge">Queued observations pending</div>
 <div id="bottom-controls">
-  <div id="city-tabs">
-    <div class="city-tab active" data-city="all">All</div>
-    <div class="city-tab" data-city="St. Louis">St. Louis</div>
-    <div class="city-tab" data-city="Berlin">Berlin</div>
-    <div class="city-tab" data-city="Paris">Paris</div>
-    <div class="city-tab" data-city="London">London</div>
-    <div class="city-tab" data-city="Cologne">Cologne</div>
-    <div class="city-tab" data-city="Venice">Venice</div>
-    <div class="city-tab" data-city="Milan">Milan</div>
-  </div>
+  <div id="city-tabs"></div>
   <div id="action-row">
-    <button id="add-btn">+ Add Observation</button>
-    <button id="feed-btn">☰<span id="feed-badge"></span></button>
-    <button id="contrib-btn" style="padding:14px 14px;background:var(--surface2);color:var(--text-dim);border:1px solid var(--border);border-radius:2px;font-size:13px;cursor:pointer" title="Contributors">👥</button>
+    <button id="add-btn" aria-label="Add observation">+ Add Observation</button>
+    <button id="feed-btn" aria-label="Open observations feed">☰<span id="feed-badge"></span></button>
+    <button id="contrib-btn" style="padding:14px 14px;background:var(--surface2);color:var(--text-dim);border:1px solid var(--border);border-radius:2px;font-size:13px;cursor:pointer" title="Contributors" aria-label="View contributors">👥</button>
   </div>
 </div>
 
@@ -360,7 +385,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 <div id="add-panel" class="panel">
   <div class="panel-header">
     <span class="panel-title">New Observation</span>
-    <div class="close-btn" id="close-add">×</div>
+    <div class="close-btn" id="close-add" role="button" aria-label="Close">×</div>
   </div>
   <div class="panel-body">
     <div class="field">
@@ -381,11 +406,11 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     </div>
     <div class="field">
       <label>Label <span style="color:var(--text-dim);font-size:9px;letter-spacing:0;text-transform:none">optional</span></label>
-      <input type="text" id="label-input" placeholder="Name this place…"/>
+      <input type="text" id="label-input" placeholder="Name this place…" maxlength="80"/>
     </div>
     <div class="field">
       <label>Note <span style="color:var(--text-dim);font-size:9px;letter-spacing:0;text-transform:none">optional</span></label>
-      <textarea id="note-input" placeholder="What stopped you here…"></textarea>
+      <textarea id="note-input" placeholder="What stopped you here…" maxlength="500"></textarea>
     </div>
     <button class="submit-btn" id="submit-btn">Add to Map</button>
     <div style="height:28px"></div>
@@ -396,7 +421,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 <div id="feed-panel" class="panel">
   <div class="panel-header">
     <span class="panel-title">Observations</span>
-    <div class="close-btn" id="close-feed">×</div>
+    <div class="close-btn" id="close-feed" role="button" aria-label="Close">×</div>
   </div>
   <div id="pull-indicator">↓ Pull to refresh</div>
   <div class="field" style="padding:10px 20px;margin-bottom:0;border-bottom:1px solid var(--border)">
@@ -416,7 +441,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 <div id="detail-panel" class="panel">
   <div class="panel-header">
     <span class="panel-title">Observation</span>
-    <div class="close-btn" id="close-detail">×</div>
+    <div class="close-btn" id="close-detail" role="button" aria-label="Close">×</div>
   </div>
   <div id="detail-body"></div>
 </div>
@@ -426,13 +451,13 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 <div id="contrib-panel" class="panel">
   <div class="panel-header">
     <span class="panel-title">Contributors</span>
-    <div class="close-btn" id="close-contrib">×</div>
+    <div class="close-btn" id="close-contrib" role="button" aria-label="Close">×</div>
   </div>
   <div id="contrib-body" class="panel-body"></div>
 </div>
 
 <!-- ONBOARDING OVERLAY -->
-<div id="onboard-overlay" class="hidden">
+<div id="onboard-overlay" class="hidden" role="dialog" aria-modal="true" aria-label="Welcome to Field Notes">
   <div class="overlay-card">
     <h2>Field Notes</h2>
     <div class="overlay-features">
@@ -453,8 +478,18 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   </div>
 </div>
 
+<!-- ADMIN PASSWORD OVERLAY -->
+<div id="admin-overlay" class="hidden" role="dialog" aria-modal="true" aria-label="Admin access">
+  <div class="overlay-card">
+    <h2>Admin Access</h2>
+    <p>Enter the admin password to continue.</p>
+    <input type="password" id="admin-input" placeholder="Password" autocomplete="off"/>
+    <button id="admin-save-btn">Enter</button>
+  </div>
+</div>
+
 <!-- NAME OVERLAY -->
-<div id="overlay" class="hidden">
+<div id="overlay" class="hidden" role="dialog" aria-modal="true" aria-label="Set your name">
   <div class="overlay-card">
     <h2>Who are you?</h2>
     <p>Your name appears with every observation. You can change it anytime by tapping your name at the top.</p>
@@ -472,51 +507,67 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 <!-- TOAST -->
 <div id="toast"></div>
 
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/field-notes/sw.js').catch(function() {});
+}
+</script>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script>
 (function() {
-  var SUPABASE_URL = 'https://mjirubqqgvemwxdixzsq.supabase.co';
-  var SUPABASE_KEY = 'sb_publishable_I3nGnJAof56DlaGBVbq16Q_u2bINm4R';
+  const SUPABASE_URL = 'https://mjirubqqgvemwxdixzsq.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_I3nGnJAof56DlaGBVbq16Q_u2bINm4R';
   // *** CHANGE 'CHANGEME' TO YOUR ADMIN PASSWORD BEFORE DEPLOYING ***
-  var ADMIN_PASSWORD = 'CHANGEME';
+  const ADMIN_PASSWORD = 'CHANGEME';
 
-  var map, allPins = [];
-  var currentCity = 'all';
-  var feedFilter = 'all';
+  let map, allPins = [];
+  let currentCity = 'all';
+  let feedFilter = 'all';
   // IDENTITY — URL parameter takes priority over localStorage
-  var urlParams = new URLSearchParams(window.location.search);
-  var urlUser = urlParams.get('u');
-  var contributor = urlUser || localStorage.getItem('fn_name') || '';
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlUser = urlParams.get('u');
+  const urlPin = urlParams.get('pin');
+  let contributor = urlUser || localStorage.getItem('fn_name') || '';
   if (urlUser) {
-    // Normalize: capitalize first letter
-    contributor = urlUser.charAt(0).toUpperCase() + urlUser.slice(1).toLowerCase();
+    // Normalize: capitalize each word
+    contributor = urlUser.trim().split(/\s+/).map(function(w) { return w.charAt(0).toUpperCase() + w.slice(1); }).join(' ');
     localStorage.setItem('fn_name', contributor);
   }
-  var isAdmin = sessionStorage.getItem('fn_admin') === '1';
-  var photoFile = null;
-  var detectedLat = null, detectedLng = null, detectedCity = null;
-  var isOnline = navigator.onLine;
+  // Stable device identity — used to correctly identify "Mine" regardless of name changes
+  let contributorId = localStorage.getItem('fn_id');
+  if (!contributorId) {
+    contributorId = (crypto.randomUUID ? crypto.randomUUID() : ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, function(c) { return (c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16); }));
+    localStorage.setItem('fn_id', contributorId);
+  }
+  let isAdmin = sessionStorage.getItem('fn_admin') === '1';
+  let photoFile = null;
+  let detectedLat = null, detectedLng = null, detectedCity = null;
+  let isOnline = navigator.onLine;
 
 
-  // CONTRIBUTOR COLOURS
-  var COLOURS = ['#e8452a','#4a90d9','#7db87d','#c8852a','#9b6bb5','#d4885a'];
-  var colourMap = {};
-  var colourIdx = 0;
+  // CONTRIBUTOR COLOURS — deterministic hash so colour is stable across reloads
+  const COLOURS = ['#e8452a','#4a90d9','#7db87d','#c8852a','#9b6bb5','#d4885a'];
   function getContributorColour(name) {
-    if (!colourMap[name]) {
-      colourMap[name] = COLOURS[colourIdx % COLOURS.length];
-      colourIdx++;
-    }
-    return colourMap[name];
+    let h = 0;
+    for (let i = 0; i < name.length; i++) { h = Math.imul(31, h) + name.charCodeAt(i) | 0; }
+    return COLOURS[Math.abs(h) % COLOURS.length];
   }
 
   // OFFLINE QUEUE
-  var offlineQueue = JSON.parse(localStorage.getItem('fn_queue') || '[]');
+  let offlineQueue = JSON.parse(localStorage.getItem('fn_queue') || '[]');
 
   function saveQueue() {
-    localStorage.setItem('fn_queue', JSON.stringify(offlineQueue));
-    var badge = document.getElementById('queue-badge');
+    try {
+      localStorage.setItem('fn_queue', JSON.stringify(offlineQueue));
+    } catch(e) {
+      // Storage quota exceeded — strip photo data and retry
+      const slim = offlineQueue.map(function(item) {
+        return { contributor_name: item.contributor_name, contributor_id: item.contributor_id, note: item.note, label: item.label, photo_url: null, photo_data: null, city: item.city, lat: item.lat, lng: item.lng };
+      });
+      try { localStorage.setItem('fn_queue', JSON.stringify(slim)); } catch(e2) {}
+    }
+    const badge = document.getElementById('queue-badge');
     if (badge) {
       if (offlineQueue.length > 0) {
         badge.textContent = offlineQueue.length + ' observation' + (offlineQueue.length > 1 ? 's' : '') + ' queued — waiting for connection';
@@ -527,10 +578,41 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     }
   }
 
+  function checkConnectivity() {
+    return fetch(SUPABASE_URL + '/rest/v1/', {
+      method: 'HEAD',
+      headers: { 'apikey': SUPABASE_KEY }
+    }).then(function() { return true; }).catch(function() { return false; });
+  }
+
   function flushQueue() {
     if (!isOnline || offlineQueue.length === 0) return;
-    var item = offlineQueue[0];
-    api('pins', 'POST', item).then(function(res) {
+    checkConnectivity().then(function(ok) {
+      if (!ok) return;
+      const item = offlineQueue[0];
+      uploadQueueItem(item);
+    });
+  }
+
+  function uploadQueueItem(item) {
+    const doPhoto = item.photo_data
+      ? fetch(item.photo_data).then(function(r) { return r.blob(); }).then(function(blob) {
+          return uploadPhoto(new File([blob], 'queued.jpg', { type: blob.type || 'image/jpeg' }));
+        })
+      : Promise.resolve(null);
+
+    doPhoto.then(function(photoUrl) {
+      return api('pins', 'POST', {
+        contributor_name: item.contributor_name,
+        contributor_id: item.contributor_id,
+        note: item.note,
+        label: item.label,
+        photo_url: photoUrl,
+        city: item.city,
+        lat: item.lat,
+        lng: item.lng
+      });
+    }).then(function(res) {
       if (Array.isArray(res) && res[0]) {
         allPins.unshift(res[0]);
         renderMarkers();
@@ -542,34 +624,25 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
           showToast('Queued observations uploaded');
         }
       }
-    }).catch(function() {});
+    }).catch(function(e) { console.error('Queue flush error:', e); });
   }
 
-  var CITIES = {
+  const CITIES = {
     'all':       { center: [48.5, 10.0], zoom: 4 },
-    'St. Louis': { center: [38.627, -90.197], zoom: 13 },
-    'Berlin':    { center: [52.520, 13.405], zoom: 13 },
-    'Paris':     { center: [48.857, 2.352],  zoom: 13 },
-    'London':    { center: [51.507, -0.128], zoom: 13 },
-    'Cologne':   { center: [50.933, 6.950],  zoom: 13 },
-    'Venice':    { center: [45.434, 12.338], zoom: 14 },
-    'Milan':     { center: [45.464, 9.190],  zoom: 13 }
+    'St. Louis': { center: [38.627, -90.197], zoom: 13, latMin: 38.50, latMax: 38.80, lngMin: -90.40, lngMax: -90.00 },
+    'Berlin':    { center: [52.520, 13.405], zoom: 13, latMin: 52.33, latMax: 52.68, lngMin: 13.08,  lngMax: 13.77  },
+    'Paris':     { center: [48.857, 2.352],  zoom: 13, latMin: 48.74, latMax: 48.95, lngMin: 2.22,   lngMax: 2.47   },
+    'London':    { center: [51.507, -0.128], zoom: 13, latMin: 51.38, latMax: 51.62, lngMin: -0.35,  lngMax: 0.15   },
+    'Cologne':   { center: [50.933, 6.950],  zoom: 13, latMin: 50.83, latMax: 51.08, lngMin: 6.77,   lngMax: 7.16   },
+    'Venice':    { center: [45.434, 12.338], zoom: 14, latMin: 45.39, latMax: 45.50, lngMin: 12.20,  lngMax: 12.50  },
+    'Milan':     { center: [45.464, 9.190],  zoom: 13, latMin: 45.38, latMax: 45.55, lngMin: 9.03,   lngMax: 9.35   }
   };
 
-  var CITY_BOUNDS = [
-    { name: 'St. Louis', latMin: 38.50, latMax: 38.80, lngMin: -90.40, lngMax: -90.00 },
-    { name: 'Venice',    latMin: 45.39, latMax: 45.50, lngMin: 12.20,  lngMax: 12.50  },
-    { name: 'Berlin',    latMin: 52.33, latMax: 52.68, lngMin: 13.08,  lngMax: 13.77  },
-    { name: 'Paris',     latMin: 48.74, latMax: 48.95, lngMin: 2.22,   lngMax: 2.47   },
-    { name: 'London',    latMin: 51.38, latMax: 51.62, lngMin: -0.35,  lngMax: 0.15   },
-    { name: 'Cologne',   latMin: 50.83, latMax: 51.08, lngMin: 6.77,   lngMax: 7.16   },
-    { name: 'Milan',     latMin: 45.38, latMax: 45.55, lngMin: 9.03,   lngMax: 9.35   }
-  ];
-
   function detectCity(lat, lng) {
-    for (var i = 0; i < CITY_BOUNDS.length; i++) {
-      var b = CITY_BOUNDS[i];
-      if (lat >= b.latMin && lat <= b.latMax && lng >= b.lngMin && lng <= b.lngMax) return b.name;
+    const names = Object.keys(CITIES);
+    for (let i = 0; i < names.length; i++) {
+      const c = CITIES[names[i]];
+      if (c.latMin !== undefined && lat >= c.latMin && lat <= c.latMax && lng >= c.lngMin && lng <= c.lngMax) return names[i];
     }
     return 'Unknown';
   }
@@ -578,12 +651,12 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   // COMPRESS PHOTO before upload
   function compressPhoto(file) {
     return new Promise(function(resolve) {
-      var canvas = document.createElement('canvas');
-      var ctx = canvas.getContext('2d');
-      var img = new Image();
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
       img.onload = function() {
-        var MAX = 1600;
-        var w = img.width, h = img.height;
+        const MAX = 1600;
+        let w = img.width, h = img.height;
         if (w > h) { if (w > MAX) { h = h * MAX / w; w = MAX; } }
         else { if (h > MAX) { w = w * MAX / h; h = MAX; } }
         canvas.width = w; canvas.height = h;
@@ -601,7 +674,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   // API
   function api(path, method, body) {
     if (!isOnline) return Promise.reject(new Error('offline'));
-    var opts = {
+    const opts = {
       method: method || 'GET',
       headers: {
         'apikey': SUPABASE_KEY,
@@ -618,8 +691,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   }
 
   function uploadPhoto(file) {
-    var ext = (file.name || 'photo.jpg').split('.').pop();
-    var filename = Date.now() + '_' + Math.random().toString(36).slice(2) + '.' + ext;
+    const ext = (file.name || 'photo.jpg').split('.').pop();
+    const filename = Date.now() + '_' + Math.random().toString(36).slice(2) + '.' + ext;
     return fetch(SUPABASE_URL + '/storage/v1/object/photos/' + filename, {
       method: 'POST',
       headers: {
@@ -635,10 +708,10 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   }
 
   // TOAST
-  var toastTimer, toastEl;
+  let toastTimer, toastEl;
   function showToast(msg, isError) {
     clearTimeout(toastTimer);
-    var t = toastEl || (toastEl = document.getElementById('toast'));
+    const t = toastEl || (toastEl = document.getElementById('toast'));
     t.textContent = msg;
     t.className = 'show' + (isError ? ' error' : '');
     toastTimer = setTimeout(function() { t.className = ''; }, isError ? 3500 : 2200);
@@ -651,10 +724,17 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 
   function esc(s) {
     if (!s) return '';
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  var dateFormatter = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  function highlight(text, query) {
+    const safe = esc(text);
+    if (!query) return safe;
+    const escapedQ = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return safe.replace(new RegExp('(' + escapedQ + ')', 'gi'), '<mark>$1</mark>');
+  }
+
+  const dateFormatter = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
   function fmtDate(iso) {
     try { return dateFormatter.format(new Date(iso)); }
     catch(e) { return ''; }
@@ -663,8 +743,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   // OFFLINE DETECTION
   function updateOnlineStatus() {
     isOnline = navigator.onLine;
-    var banner = document.getElementById('offline-banner');
-    var topbar = document.getElementById('topbar');
+    const banner = document.getElementById('offline-banner');
+    const topbar = document.getElementById('topbar');
     if (!isOnline) {
       banner.classList.add('visible');
       topbar.classList.add('pushed');
@@ -678,10 +758,10 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 
   // LOCATION STATUS
   function setLocStatus(state, text) {
-    var el = document.getElementById('location-status');
+    const el = document.getElementById('location-status');
     el.className = state;
     document.getElementById('location-text').textContent = text;
-    var placeBtn = document.getElementById('place-on-map-btn');
+    const placeBtn = document.getElementById('place-on-map-btn');
     if (placeBtn) placeBtn.style.display = state === 'found' ? 'none' : 'block';
   }
 
@@ -694,7 +774,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
         }).catch(function() { resolve(null); });
       }
       if (typeof exifr !== 'undefined') { run(); return; }
-      var s = document.createElement('script');
+      const s = document.createElement('script');
       s.src = 'https://cdn.jsdelivr.net/npm/exifr@7.1.3/dist/lite.umd.js';
       s.onload = run;
       s.onerror = function() { resolve(null); };
@@ -722,16 +802,16 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 
   // PHOTO
   function initPhoto() {
-    var input = document.getElementById('photo-input');
+    const input = document.getElementById('photo-input');
     input.addEventListener('change', function() {
-      var file = input.files[0];
+      const file = input.files[0];
       if (!file) return;
       photoFile = file;
       haptic();
 
-      var reader = new FileReader();
+      const reader = new FileReader();
       reader.onload = function(e) {
-        var img = document.getElementById('photo-preview');
+        const img = document.getElementById('photo-preview');
         img.src = e.target.result;
         img.style.display = 'block';
         document.getElementById('photo-label').style.display = 'none';
@@ -749,7 +829,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
             if (loc) {
               setCoords(loc.lat, loc.lng, 'device GPS');
             } else {
-              var c = map.getCenter();
+              const c = map.getCenter();
               detectedLat = c.lat; detectedLng = c.lng;
               detectedCity = detectCity(c.lat, c.lng);
               setLocStatus('error', 'GPS unavailable — using map center. Pan map to correct location.');
@@ -785,7 +865,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 
     // Hide loading screen as soon as map container is ready (300ms feels intentional),
     // with a hard fallback at 2s in case whenReady never fires (e.g. tile CDN hang).
-    var loadingHidden = false;
+    let loadingHidden = false;
     function hideMapLoading() {
       if (loadingHidden) return;
       loadingHidden = true;
@@ -799,17 +879,17 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   // Pre-fetch tiles around a lat/lng at a given zoom level into the browser cache.
   // Uses Image() so requests go through normal HTTP caching — free background warm-up.
   function prewarmTiles(lat, lng, zoom, radius) {
-    var r = radius || 3;
-    var n = Math.pow(2, zoom);
-    var tx = Math.floor((lng + 180) / 360 * n);
-    var ty = Math.floor((1 - Math.log(Math.tan(lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180)) / Math.PI) / 2 * n);
-    var subs = ['a','b','c','d'];
-    var i = 0;
-    for (var x = tx - r; x <= tx + r; x++) {
-      for (var y = ty - r; y <= ty + r; y++) {
+    const r = radius || 3;
+    const n = Math.pow(2, zoom);
+    const tx = Math.floor((lng + 180) / 360 * n);
+    const ty = Math.floor((1 - Math.log(Math.tan(lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180)) / Math.PI) / 2 * n);
+    const subs = ['a','b','c','d'];
+    let i = 0;
+    for (let x = tx - r; x <= tx + r; x++) {
+      for (let y = ty - r; y <= ty + r; y++) {
         (function(sub, px, py) {
           setTimeout(function() {
-            var img = new Image();
+            const img = new Image();
             img.src = 'https://' + sub + '.basemaps.cartocdn.com/rastertiles/voyager/' + zoom + '/' + px + '/' + py + '.png';
           }, i * 30); // stagger by 30ms to avoid saturating the connection
         })(subs[i % 4], x, y);
@@ -819,14 +899,14 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   }
 
   function setActiveCity(cityName) {
-    var tabs = document.querySelectorAll('.city-tab');
+    const tabs = document.querySelectorAll('.city-tab');
     tabs.forEach(function(t) { t.classList.remove('active'); });
     tabs.forEach(function(t) {
       if (t.dataset.city === cityName) t.classList.add('active');
     });
     currentCity = cityName;
     renderMarkers();
-    var c = CITIES[cityName] || CITIES['St. Louis'];
+    const c = CITIES[cityName] || CITIES['St. Louis'];
     map.setView(c.center, c.zoom, { animate: false });
   }
 
@@ -837,28 +917,28 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     // Then silently switch to the user's actual city if geolocation resolves
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(function(pos) {
-      var lat = pos.coords.latitude, lng = pos.coords.longitude;
-      var detected = detectCity(lat, lng);
+      const lat = pos.coords.latitude, lng = pos.coords.longitude;
+      const detected = detectCity(lat, lng);
       if (detected !== 'Unknown') setActiveCity(detected);
     }, null, { timeout: 5000, maximumAge: 60000 });
   }
 
-  var iconCache = {};
+  const iconCache = {};
   function makeIcon(cls, colour) {
-    var c = colour || '#e8452a';
-    var key = cls + '|' + c;
+    const c = colour || '#e8452a';
+    const key = cls + '|' + c;
     if (iconCache[key]) return iconCache[key];
-    var size = cls === 'dot-photo' ? 16 : 11;
-    var html = '<div style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;background:' + c + ';outline:2px solid rgba(255,255,255,0.55);outline-offset:1px;"></div>';
+    const size = cls === 'dot-photo' ? 16 : 11;
+    const html = '<div style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;background:' + c + ';outline:2px solid rgba(255,255,255,0.55);outline-offset:1px;"></div>';
     iconCache[key] = L.divIcon({ className: '', html: html, iconSize: [size,size], iconAnchor: [size/2,size/2] });
     return iconCache[key];
   }
 
   // Feed badge — tracks unseen observation count
-  var feedSeenCount = parseInt(localStorage.getItem('fn_feed_seen') || '0');
+  let feedSeenCount = parseInt(localStorage.getItem('fn_feed_seen') || '0');
   function updateFeedBadge() {
-    var unseen = Math.max(0, allPins.length - feedSeenCount);
-    var badge = document.getElementById('feed-badge');
+    const unseen = Math.max(0, allPins.length - feedSeenCount);
+    const badge = document.getElementById('feed-badge');
     if (!badge) return;
     if (unseen > 0) { badge.textContent = unseen > 9 ? '9+' : unseen; badge.classList.add('visible'); }
     else { badge.classList.remove('visible'); }
@@ -872,28 +952,27 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   // City tab counts
   function updateTabCounts() {
     document.querySelectorAll('.city-tab').forEach(function(tab) {
-      var city = tab.dataset.city;
-      var base = tab.dataset.label || tab.querySelector('.tab-name') && tab.querySelector('.tab-name').textContent || tab.textContent.replace(/\d+$/, '').trim();
-      tab.dataset.label = base;
-      var count = city === 'all' ? allPins.length : allPins.filter(function(p) { return p.city === city; }).length;
-      tab.innerHTML = base + (count > 0 ? ' <span class="tab-count">' + count + '</span>' : '');
+      const city = tab.dataset.city;
+      const cityName = city === 'all' ? 'All' : city;
+      const count = city === 'all' ? allPins.length : allPins.filter(function(p) { return p.city === city; }).length;
+      tab.innerHTML = cityName + (count > 0 ? ' <span class="tab-count">' + count + '</span>' : '');
     });
   }
 
-  var clusterGroup = null;
+  let clusterGroup = null;
 
   function makeLabelText(pin) {
     if (pin.label) return pin.label;
     if (pin.note) {
-      var first = pin.note.split(/[.\n]/)[0].trim();
+      const first = pin.note.split(/[.\n]/)[0].trim();
       return first.length > 32 ? first.substring(0, 32) + '…' : first;
     }
     return '';
   }
   function makeMarkerForPin(pin) {
-    var cls = pin.photo_url ? 'dot-photo' : 'dot-note';
-    var m = L.marker([pin.lat, pin.lng], { icon: makeIcon(cls, getContributorColour(pin.contributor_name)) });
-    var lbl = makeLabelText(pin);
+    const cls = pin.photo_url ? 'dot-photo' : 'dot-note';
+    const m = L.marker([pin.lat, pin.lng], { icon: makeIcon(cls, getContributorColour(pin.contributor_name)) });
+    const lbl = makeLabelText(pin);
     if (lbl) m.bindTooltip(lbl, { permanent: true, direction: 'right', className: 'pin-tooltip', offset: [8, 0] });
     m.on('click', (function(p) { return function() { openDetail(p); }; })(pin));
     return m;
@@ -912,19 +991,18 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     } else {
       clusterGroup.clearLayers();
     }
-    var pins = currentCity === 'all' ? allPins : allPins.filter(function(p) { return p.city === currentCity; });
+    const pins = currentCity === 'all' ? allPins : allPins.filter(function(p) { return p.city === currentCity; });
     // Batch-add all markers in one pass — much faster than individual addLayer calls
     clusterGroup.addLayers(pins.filter(function(p) { return p.lat && p.lng; }).map(makeMarkerForPin));
     document.getElementById('map-hint').classList.toggle('hidden', pins.length > 0);
   }
 
-  function rebuildMarkerLayers() { renderMarkers(); }
   function addPinToLayers(pin) {
     if (!pin.lat || !pin.lng || !clusterGroup) return;
-    var m = makeMarkerForPin(pin);
+    const m = makeMarkerForPin(pin);
     clusterGroup.addLayer(m);
     // Briefly mark the icon so the pop animation fires only for this new marker
-    var el = m.getElement ? m.getElement() : null;
+    const el = m.getElement ? m.getElement() : null;
     if (el) {
       el.classList.add('marker-new');
       setTimeout(function() { el.classList.remove('marker-new'); }, 400);
@@ -932,47 +1010,77 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   }
 
   // DATA
+  const PIN_LIMIT = 200;
+  let allPinsFullyLoaded = false;
+
   function loadData(silent) {
     if (!silent) document.getElementById('map-loading-sub').textContent = 'Loading observations…';
-    api('pins?select=*&order=created_at.desc').then(function(pins) {
+    allPinsFullyLoaded = false;
+    api('pins?select=*&order=created_at.desc&limit=' + PIN_LIMIT).then(function(pins) {
       allPins = Array.isArray(pins) ? pins : [];
-      rebuildMarkerLayers();
+      if (allPins.length < PIN_LIMIT) allPinsFullyLoaded = true;
       renderMarkers();
       updateTabCounts();
       updateFeedBadge();
       if (!silent) {
         document.getElementById('map-loading').classList.add('hidden');
         initRealtime();
-        var c = CITIES[currentCity] || CITIES['St. Louis'];
-        setTimeout(function() { prewarmTiles(c.center[0], c.center[1], 13, 3); }, 500);
-        setTimeout(function() { prewarmTiles(c.center[0], c.center[1], 15, 2); }, 2000);
+        const c = CITIES[currentCity] || CITIES['St. Louis'];
+        const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        if (!conn || (!conn.saveData && conn.effectiveType !== '2g')) {
+          setTimeout(function() { prewarmTiles(c.center[0], c.center[1], 13, 2); }, 500);
+          setTimeout(function() { prewarmTiles(c.center[0], c.center[1], 15, 1); }, 2000);
+        }
       }
-      if (silent) showToast('Refreshed');
-    }).catch(function(e) {
+      if (silent) { showToast('Refreshed'); return; }
+      if (urlPin) {
+        const linked = allPins.find(function(p) { return String(p.id) === String(urlPin); });
+        if (linked) { openDetail(linked); map.setView([linked.lat, linked.lng], 15, { animate: false }); }
+      }
+    }).catch(function() {
       document.getElementById('map-loading').classList.add('hidden');
       if (!silent) showToast('Could not load observations — check connection', true);
     });
   }
 
+  function loadMore() {
+    const btn = document.getElementById('load-more-btn');
+    if (btn) { btn.textContent = 'Loading…'; btn.disabled = true; }
+    api('pins?select=*&order=created_at.desc&limit=' + PIN_LIMIT + '&offset=' + allPins.length).then(function(pins) {
+      if (!pins || !pins.length) {
+        allPinsFullyLoaded = true;
+        renderFeed();
+        return;
+      }
+      allPins = allPins.concat(pins);
+      if (pins.length < PIN_LIMIT) allPinsFullyLoaded = true;
+      renderMarkers();
+      updateTabCounts();
+      updateFeedBadge();
+      renderFeed();
+    }).catch(function() { showToast('Could not load more — check connection', true); });
+  }
+
   // REAL-TIME — subscribe to new pins via Supabase websocket
-  var realtimeStarted = false;
+  let realtimeStarted = false;
   function initRealtime() {
     if (realtimeStarted) return;
     realtimeStarted = true;
-    var wsUrl = SUPABASE_URL.replace('https://', 'wss://') + '/realtime/v1/websocket?apikey=' + SUPABASE_KEY + '&vsn=1.0.0';
-    var ws; var wsEverOpen = false;
+    const wsUrl = SUPABASE_URL.replace('https://', 'wss://') + '/realtime/v1/websocket?apikey=' + SUPABASE_KEY + '&vsn=1.0.0';
+    let ws; let wsEverOpen = false; let reconnectDelay = 3000;
     function connect() {
       ws = new WebSocket(wsUrl);
       ws.onopen = function() {
         if (wsEverOpen) showToast('Live updates restored');
         wsEverOpen = true;
+        reconnectDelay = 3000;
         ws.send(JSON.stringify({ topic: 'realtime:public:pins', event: 'phx_join', payload: {}, ref: '1' }));
       };
       ws.onmessage = function(e) {
         try {
-          var msg = JSON.parse(e.data);
+          const msg = JSON.parse(e.data);
           if (msg.event === 'INSERT' && msg.payload && msg.payload.record) {
-            var pin = msg.payload.record;
+            const pin = msg.payload.record;
             // Ignore pins we just submitted ourselves (already in allPins)
             if (allPins.some(function(p) { return String(p.id) === String(pin.id); })) return;
             allPins.unshift(pin);
@@ -983,9 +1091,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
             showToast(esc(pin.contributor_name) + ' added an observation');
           }
           if (msg.event === 'DELETE' && msg.payload && msg.payload.old_record) {
-            var old = msg.payload.old_record;
+            const old = msg.payload.old_record;
             allPins = allPins.filter(function(p) { return String(p.id) !== String(old.id); });
-            rebuildMarkerLayers();
             renderMarkers();
             updateTabCounts();
             updateFeedBadge();
@@ -993,8 +1100,10 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
         } catch(err) {}
       };
       ws.onclose = function() {
-        // Reconnect after 3s if still online
-        if (isOnline) setTimeout(connect, 3000);
+        if (isOnline) {
+          setTimeout(connect, reconnectDelay);
+          reconnectDelay = Math.min(reconnectDelay * 2, 30000);
+        }
       };
     }
     connect();
@@ -1002,8 +1111,19 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   }
 
   // CITY TABS
+  function initCityTabs() {
+    const container = document.getElementById('city-tabs');
+    Object.keys(CITIES).forEach(function(city, i) {
+      const tab = document.createElement('div');
+      tab.className = 'city-tab' + (i === 0 ? ' active' : '');
+      tab.dataset.city = city;
+      tab.textContent = city === 'all' ? 'All' : city;
+      container.appendChild(tab);
+    });
+  }
+
   function initTabs() {
-    var tabs = document.querySelectorAll('.city-tab');
+    const tabs = document.querySelectorAll('.city-tab');
     tabs.forEach(function(tab) {
       tab.addEventListener('click', function() {
         haptic();
@@ -1011,16 +1131,16 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
         tab.classList.add('active');
         currentCity = tab.dataset.city;
         renderMarkers();
-        var c = CITIES[currentCity] || CITIES['all'];
+        const c = CITIES[currentCity] || CITIES['all'];
         map.setView(c.center, c.zoom, { animate: false });
       });
     });
   }
 
   // PANELS
-  var openPanels = [];
+  let openPanels = [];
   function openPanel(id) {
-    var el = document.getElementById(id);
+    const el = document.getElementById(id);
     el.classList.add('open');
     el.style.transform = '';
     document.getElementById('panel-backdrop').classList.add('visible');
@@ -1028,7 +1148,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     haptic();
   }
   function closePanel(id) {
-    var el = document.getElementById(id);
+    const el = document.getElementById(id);
     el.classList.remove('open');
     el.style.transform = '';
     openPanels = openPanels.filter(function(p) { return p !== id; });
@@ -1037,14 +1157,14 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 
   // SWIPE DOWN TO CLOSE panels
   document.querySelectorAll('.panel').forEach(function(panel) {
-    var startY = 0, startScroll = 0, dragging = false;
+    let startY = 0, startScroll = 0, dragging = false;
     panel.addEventListener('touchstart', function(e) {
       startY = e.touches[0].clientY;
       startScroll = panel.scrollTop;
       dragging = false;
     }, { passive: true });
     panel.addEventListener('touchmove', function(e) {
-      var dy = e.touches[0].clientY - startY;
+      const dy = e.touches[0].clientY - startY;
       if (dy > 0 && startScroll === 0) {
         dragging = true;
         panel.style.transform = 'translateY(' + Math.min(dy * 0.5, 120) + 'px)';
@@ -1053,9 +1173,9 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     }, { passive: true });
     panel.addEventListener('touchend', function(e) {
       panel.style.transition = '';
-      var dy = e.changedTouches[0].clientY - startY;
+      const dy = e.changedTouches[0].clientY - startY;
       if (dragging && dy > 80) {
-        var id = panel.id;
+        const id = panel.id;
         closePanel(id);
         if (id === 'add-panel') resetForm();
         haptic();
@@ -1071,55 +1191,65 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 
   // DETAIL
   function openDetail(pin) {
-    var isOwner = pin.contributor_name === contributor || isAdmin;
-    var body = document.getElementById('detail-body');
+    const isOwner = isAdmin ||
+      (pin.contributor_id ? pin.contributor_id === contributorId : pin.contributor_name === contributor);
+    const body = document.getElementById('detail-body');
 
     function renderView() {
       body.innerHTML =
         '<div class="feed-item">' +
         (pin.photo_url ? '<img class="feed-item-img" src="' + esc(pin.photo_url) + '" loading="lazy" alt="" onerror="this.style.display=\'none\'" style="cursor:pointer"/>' : '') +
-        '<div class="feed-meta"><span class="feed-contributor">' + esc(pin.contributor_name) + '</span><span class="feed-time">' + fmtDate(pin.created_at) + '</span></div>' +
+        '<div class="feed-meta"><span class="feed-contributor" style="color:' + getContributorColour(pin.contributor_name) + '">' + esc(pin.contributor_name) + '</span><span class="feed-time">' + fmtDate(pin.created_at) + '</span></div>' +
         '<div class="feed-location">' + (pin.label ? esc(pin.label) + ' · ' : '') + esc(pin.city) + '</div>' +
         (pin.note ? '<div class="feed-note">' + esc(pin.note) + '</div>' : '<div class="feed-note" style="color:var(--text-dim);font-style:italic">No note</div>') +
-        (pin.lat && pin.lng ?
-          '<button id="directions-btn" style="width:100%;margin-top:16px;padding:13px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;color:var(--text-dim);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer">↗ Directions</button>' : '') +
+        '<div class="detail-actions">' +
+        (pin.lat && pin.lng ? '<button id="directions-btn" class="detail-btn detail-btn-secondary detail-btn-full">↗ Directions</button>' : '') +
+        '<button id="share-pin-btn" class="detail-btn detail-btn-secondary">⎘ Share</button>' +
+        '</div>' +
         (isOwner ?
-          '<div style="display:flex;gap:8px;margin-top:8px">' +
-          '<button id="edit-note-btn" style="flex:1;padding:11px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;color:var(--accent);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer">Edit Note</button>' +
-          '<button id="delete-pin-btn" style="padding:11px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;color:var(--danger);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer">Delete</button>' +
+          '<div class="detail-actions">' +
+          '<button id="edit-note-btn" class="detail-btn detail-btn-edit detail-btn-full">Edit Note</button>' +
+          '<button id="delete-pin-btn" class="detail-btn detail-btn-danger">Delete</button>' +
           '</div>' : '') +
         '</div>';
 
-      var dirBtn = document.getElementById('directions-btn');
+      const dirBtn = document.getElementById('directions-btn');
       if (dirBtn) {
         dirBtn.addEventListener('click', function() {
           haptic();
-          var lat = pin.lat, lng = pin.lng;
-          var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-          var url = isIOS
+          const lat = pin.lat, lng = pin.lng;
+          const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+          const url = isIOS
             ? 'https://maps.apple.com/?daddr=' + lat + ',' + lng
             : 'https://www.google.com/maps/dir/?api=1&destination=' + lat + ',' + lng;
           window.open(url, '_blank');
         });
       }
 
+      document.getElementById('share-pin-btn').addEventListener('click', function() {
+        haptic();
+        const shareUrl = location.origin + location.pathname + '?pin=' + pin.id;
+        navigator.clipboard.writeText(shareUrl).then(function() {
+          showToast('Link copied');
+        }).catch(function() { showToast(shareUrl); });
+      });
+
       if (isOwner) {
         document.getElementById('edit-note-btn').addEventListener('click', function() {
           haptic();
-          var current = pin.note || '';
+          const current = pin.note || '';
           body.innerHTML =
-            '<div style="padding:20px">' +
-            '<textarea id="edit-note-area" style="width:100%;min-height:140px;background:var(--surface);border:1px solid var(--accent);border-radius:2px;color:var(--text);font-family:var(--font-body);font-size:15px;padding:12px;outline:none;resize:none;line-height:1.5;margin-bottom:12px">' + esc(current) + '</textarea>' +
-            '<div style="display:flex;gap:8px">' +
-            '<button id="save-note-btn" style="flex:1;padding:13px;background:var(--accent);border:none;border-radius:2px;color:#0e0e0e;font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer">Save</button>' +
-            '<button id="cancel-edit-btn" style="padding:13px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;color:var(--text-dim);font-size:12px;cursor:pointer">Cancel</button>' +
+            '<div class="detail-edit-wrap">' +
+            '<textarea id="edit-note-area" class="detail-edit-area">' + esc(current) + '</textarea>' +
+            '<div class="detail-actions">' +
+            '<button id="save-note-btn" class="detail-btn detail-btn-accent detail-btn-full">Save</button>' +
+            '<button id="cancel-edit-btn" class="detail-btn detail-btn-secondary">Cancel</button>' +
             '</div></div>';
           document.getElementById('save-note-btn').addEventListener('click', function() {
-            var newNote = document.getElementById('edit-note-area').value.trim();
+            const newNote = document.getElementById('edit-note-area').value.trim();
             api('pins?id=eq.' + pin.id, 'PATCH', { note: newNote || null }).then(function() {
-              pin.note = newNote;
-              var idx = allPins.findIndex(function(p) { return p.id === pin.id; });
-              if (idx > -1) allPins[idx].note = newNote;
+              const idx = allPins.findIndex(function(p) { return p.id === pin.id; });
+              if (idx > -1) { allPins[idx].note = newNote; pin = allPins[idx]; }
               showToast('Note updated');
               haptic();
               renderView();
@@ -1131,11 +1261,11 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
         document.getElementById('delete-pin-btn').addEventListener('click', function() {
           haptic();
           body.innerHTML =
-            '<div style="padding:40px 20px;text-align:center">' +
-            '<div style="font-size:14px;color:var(--text);margin-bottom:20px;line-height:1.6">Delete this observation?<br><span style="color:var(--text-dim);font-size:12px">This cannot be undone.</span></div>' +
-            '<div style="display:flex;gap:8px">' +
-            '<button id="confirm-delete-btn" style="flex:1;padding:13px;background:var(--danger);border:none;border-radius:2px;color:white;font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer">Delete</button>' +
-            '<button id="cancel-delete-btn" style="flex:1;padding:13px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;color:var(--text-dim);font-size:12px;cursor:pointer">Cancel</button>' +
+            '<div class="detail-confirm">' +
+            '<div class="detail-confirm-msg">Delete this observation?<br><span class="detail-confirm-sub">This cannot be undone.</span></div>' +
+            '<div class="detail-actions">' +
+            '<button id="confirm-delete-btn" class="detail-btn detail-btn-danger-fill detail-btn-full">Delete</button>' +
+            '<button id="cancel-delete-btn" class="detail-btn detail-btn-secondary detail-btn-full">Cancel</button>' +
             '</div></div>';
           document.getElementById('confirm-delete-btn').addEventListener('click', function() {
             api('pins?id=eq.' + pin.id, 'DELETE').then(function() {
@@ -1159,21 +1289,21 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 
   // PDF EXPORT
   function exportPDF() {
-    var pins = currentCity === 'all' ? allPins : allPins.filter(function(p) { return p.city === currentCity; });
+    const pins = currentCity === 'all' ? allPins : allPins.filter(function(p) { return p.city === currentCity; });
     if (!pins.length) { showToast('No observations to export', true); return; }
 
-    var title = 'Field Notes' + (currentCity !== 'all' ? ' — ' + currentCity : '');
-    var rows = pins.map(function(p) {
+    const title = 'Field Notes' + (currentCity !== 'all' ? ' — ' + currentCity : '');
+    const rows = pins.map(function(p) {
       return '<tr style="border-bottom:1px solid #eee">' +
         '<td style="padding:12px 8px;font-size:11px;color:#888;white-space:nowrap">' + fmtDate(p.created_at) + '</td>' +
         '<td style="padding:12px 8px;font-size:11px;font-weight:600;color:#c8b89a;text-transform:uppercase;letter-spacing:0.06em">' + esc(p.contributor_name) + '</td>' +
         '<td style="padding:12px 8px;font-size:11px;color:#888">' + esc(p.city) + (p.label ? ' · ' + esc(p.label) : '') + '</td>' +
         '<td style="padding:12px 8px;font-size:13px;color:#333;line-height:1.5">' + (p.note ? esc(p.note) : '<em style="color:#aaa">No note</em>') + '</td>' +
-        (p.photo_url ? '<td style="padding:8px"><img src="' + p.photo_url + '" style="width:80px;height:60px;object-fit:cover;border-radius:2px"/></td>' : '<td></td>') +
+        (p.photo_url ? '<td style="padding:8px"><img src="' + esc(p.photo_url) + '" style="width:80px;height:60px;object-fit:cover;border-radius:2px"/></td>' : '<td></td>') +
         '</tr>';
     }).join('');
 
-    var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + title + '</title>' +
+    const html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + title + '</title>' +
       '<style>body{font-family:Georgia,serif;margin:40px;color:#333}h1{font-size:24px;letter-spacing:0.1em;text-transform:uppercase;color:#c8b89a;margin-bottom:4px}h2{font-size:12px;color:#888;font-weight:normal;margin-bottom:32px;font-family:Helvetica,sans-serif;letter-spacing:0.06em}table{width:100%;border-collapse:collapse}th{text-align:left;padding:8px;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:#888;border-bottom:2px solid #eee;font-family:Helvetica,sans-serif}@media print{body{margin:20px}}</style>' +
       '</head><body>' +
       '<h1>' + title + '</h1>' +
@@ -1181,23 +1311,33 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
       '<table><thead><tr><th>Date</th><th>By</th><th>Location</th><th>Note</th><th>Photo</th></tr></thead><tbody>' +
       rows + '</tbody></table></body></html>';
 
-    var w = window.open('', '_blank');
-    w.document.write(html);
-    w.document.close();
-    setTimeout(function() { w.print(); }, 500);
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const w = window.open(url, '_blank');
+    if (w) {
+      w.onload = function() { w.print(); };
+    } else {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'field-notes' + (currentCity !== 'all' ? '-' + currentCity.toLowerCase().replace(/\s+/g, '-') : '') + '.html';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+    setTimeout(function() { URL.revokeObjectURL(url); }, 10000);
   }
 
   function renderContributors() {
-    var body = document.getElementById('contrib-body');
-    var counts = {};
-    var cities = {};
+    const body = document.getElementById('contrib-body');
+    const counts = {};
+    const cities = {};
     allPins.forEach(function(p) {
       if (!counts[p.contributor_name]) { counts[p.contributor_name] = 0; cities[p.contributor_name] = {}; }
       counts[p.contributor_name]++;
       cities[p.contributor_name][p.city] = true;
     });
 
-    var names = Object.keys(counts).sort(function(a,b) { return counts[b] - counts[a]; });
+    const names = Object.keys(counts).sort(function(a,b) { return counts[b] - counts[a]; });
 
     if (!names.length) {
       body.innerHTML = '<div class="feed-empty">No observations yet.</div>';
@@ -1205,35 +1345,35 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     }
 
     body.innerHTML = names.map(function(name) {
-      var colour = getContributorColour(name);
-      var cityList = Object.keys(cities[name]).join(', ');
-      return '<div class="feed-item" style="display:flex;align-items:center;gap:14px;cursor:default" data-contributor="' + esc(name) + '">' +
-        '<div style="width:14px;height:14px;border-radius:50%;background:' + colour + ';flex-shrink:0;box-shadow:0 0 8px ' + colour + '88"></div>' +
-        '<div style="flex:1">' +
-        '<div style="font-size:13px;color:var(--text);margin-bottom:3px">' + esc(name) + '</div>' +
-        '<div style="font-size:11px;color:var(--text-dim)">' + counts[name] + ' observation' + (counts[name] !== 1 ? 's' : '') + ' · ' + cityList + '</div>' +
+      const colour = getContributorColour(name);
+      const cityList = Object.keys(cities[name]).join(', ');
+      return '<div class="feed-item contrib-item" data-contributor="' + esc(name) + '">' +
+        '<div class="contrib-dot" style="background:' + colour + ';box-shadow:0 0 8px ' + colour + '88">' + name.trim().split(/\s+/).map(function(w){return w[0];}).join('').slice(0,2).toUpperCase() + '</div>' +
+        '<div class="contrib-info">' +
+        '<div class="contrib-name">' + esc(name) + '</div>' +
+        '<div class="contrib-meta">' + counts[name] + ' observation' + (counts[name] !== 1 ? 's' : '') + ' · ' + cityList + '</div>' +
         '</div>' +
-        '<div style="display:flex;align-items:center;gap:8px">' +
-        '<div style="font-size:20px;font-weight:700;color:var(--accent);font-family:var(--font-display)">' + counts[name] + '</div>' +
-        '<button class="share-user-btn" data-name="' + esc(name) + '" style="padding:6px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;color:var(--text-dim);font-size:11px;cursor:pointer" title="Copy link">⎘</button>' +
-        (isAdmin ? '<button class="delete-user-btn" data-name="' + esc(name) + '" style="padding:6px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:2px;color:var(--danger);font-size:10px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer">Delete All</button>' : '') +
+        '<div class="contrib-actions">' +
+        '<div class="contrib-count">' + counts[name] + '</div>' +
+        '<button class="share-user-btn contrib-btn contrib-share-btn" data-name="' + esc(name) + '" title="Copy link">⎘</button>' +
+        (isAdmin ? '<button class="delete-user-btn contrib-btn contrib-delete-btn" data-name="' + esc(name) + '">Delete All</button>' : '') +
         '</div>' +
         '</div>';
     }).join('') +
-    '<div style="padding:20px;border-top:1px solid var(--border);margin-top:8px">' +
-    '<button id="export-pdf-btn" style="width:100%;padding:13px;background:var(--accent);color:#0e0e0e;border:none;border-radius:2px;font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer">Export PDF</button>' +
+    '<div class="contrib-footer">' +
+    '<button id="export-pdf-btn" class="contrib-export-btn">Export PDF</button>' +
     '</div>';
 
     // Wire export button
-    var exportBtn = body.querySelector('#export-pdf-btn');
+    const exportBtn = body.querySelector('#export-pdf-btn');
     if (exportBtn) exportBtn.addEventListener('click', exportPDF);
 
     // Wire share buttons
     body.querySelectorAll('.share-user-btn').forEach(function(btn) {
       btn.addEventListener('click', function(e) {
         e.stopPropagation();
-        var name = btn.dataset.name;
-        var url = location.origin + location.pathname + '?u=' + encodeURIComponent(name.toLowerCase());
+        const name = btn.dataset.name;
+        const url = location.origin + location.pathname + '?u=' + encodeURIComponent(name.toLowerCase());
         navigator.clipboard.writeText(url).then(function() {
           showToast('Link copied for ' + name);
           haptic();
@@ -1248,8 +1388,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
       body.querySelectorAll('.delete-user-btn').forEach(function(btn) {
         btn.addEventListener('click', function(e) {
           e.stopPropagation();
-          var name = btn.dataset.name;
-          var count = counts[name];
+          const name = btn.dataset.name;
+          const count = counts[name];
           if (!confirm('Delete all ' + count + ' observation' + (count !== 1 ? 's' : '') + ' by ' + name + '? This cannot be undone.')) return;
           // Delete all pins by this contributor
           api('pins?contributor_name=eq.' + encodeURIComponent(name), 'DELETE').then(function() {
@@ -1266,25 +1406,26 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 
   function fmtDateGroup(dateStr) {
     if (!dateStr) return '';
-    var d = new Date(dateStr);
-    var now = new Date();
-    var todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-    var pinStart = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-    var diff = todayStart - pinStart;
+    const d = new Date(dateStr);
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const pinStart = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    const diff = todayStart - pinStart;
     if (diff === 0) return 'Today';
     if (diff === 86400000) return 'Yesterday';
     return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   }
 
   function renderFeed() {
-    var body = document.getElementById('feed-body');
-    var scrollTop = body.scrollTop;
-    var searchEl = document.getElementById('feed-search');
-    var searchVal = searchEl ? searchEl.value.toLowerCase().trim() : '';
-    var pins = allPins.filter(function(p) {
-      var cityMatch = currentCity === 'all' || p.city === currentCity;
-      var mineMatch = feedFilter === 'all' || p.contributor_name === contributor;
-      var searchMatch = !searchVal ||
+    const body = document.getElementById('feed-body');
+    const scrollTop = body.scrollTop;
+    const searchEl = document.getElementById('feed-search');
+    const searchVal = searchEl ? searchEl.value.toLowerCase().trim() : '';
+    const pins = allPins.filter(function(p) {
+      const cityMatch = currentCity === 'all' || p.city === currentCity;
+      const mineMatch = feedFilter === 'all' ||
+        (p.contributor_id ? p.contributor_id === contributorId : p.contributor_name === contributor);
+      const searchMatch = !searchVal ||
         (p.note && p.note.toLowerCase().indexOf(searchVal) > -1) ||
         (p.label && p.label.toLowerCase().indexOf(searchVal) > -1) ||
         (p.contributor_name && p.contributor_name.toLowerCase().indexOf(searchVal) > -1) ||
@@ -1300,28 +1441,33 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     }
 
     // Build date-grouped HTML
-    var html = '';
-    var lastGroup = null;
+    let html = '';
+    let lastGroup = null;
     pins.forEach(function(p) {
-      var group = fmtDateGroup(p.created_at);
+      const group = fmtDateGroup(p.created_at);
       if (group !== lastGroup) {
         html += '<div class="feed-date-header">' + group + '</div>';
         lastGroup = group;
       }
       html += '<div class="feed-item" data-lat="' + p.lat + '" data-lng="' + p.lng + '" data-id="' + p.id + '">' +
         (p.photo_url ? '<img class="feed-item-img" src="' + esc(p.photo_url) + '" loading="lazy" alt="" onerror="this.style.display=\'none\'"/>' : '') +
-        '<div class="feed-meta"><span class="feed-contributor">' + esc(p.contributor_name) + '</span><span class="feed-time">' + fmtDate(p.created_at) + '</span></div>' +
-        '<div class="feed-location">' + (p.label ? esc(p.label) + ' · ' : '') + esc(p.city) + '</div>' +
-        (p.note ? '<div class="feed-note">' + esc(p.note) + '</div>' : '') +
+        '<div class="feed-meta"><span class="feed-contributor" style="color:' + getContributorColour(p.contributor_name) + '">' + highlight(p.contributor_name, searchVal) + '</span><span class="feed-time">' + fmtDate(p.created_at) + '</span></div>' +
+        '<div class="feed-location">' + (p.label ? highlight(p.label, searchVal) + ' · ' : '') + esc(p.city) + '</div>' +
+        (p.note ? '<div class="feed-note">' + highlight(p.note, searchVal) + '</div>' : '') +
         '</div>';
     });
+    if (!allPinsFullyLoaded && !searchVal) {
+      html += '<div style="padding:8px 20px 20px"><button id="load-more-btn">Load more</button></div>';
+    }
     body.innerHTML = html;
     body.scrollTop = scrollTop;
+    const loadMoreBtn = document.getElementById('load-more-btn');
+    if (loadMoreBtn) loadMoreBtn.addEventListener('click', loadMore);
   }
 
   function showFeedSkeleton() {
-    var body = document.getElementById('feed-body');
-    var row = '<div class="skeleton"><div class="skeleton-line" style="width:40%;height:10px"></div><div class="skeleton-line" style="width:70%;height:10px"></div><div class="skeleton-line" style="width:55%;height:10px;margin-bottom:0"></div></div>';
+    const body = document.getElementById('feed-body');
+    const row = '<div class="skeleton"><div class="skeleton-line" style="width:40%;height:10px"></div><div class="skeleton-line" style="width:70%;height:10px"></div><div class="skeleton-line" style="width:55%;height:10px;margin-bottom:0"></div></div>';
     body.innerHTML = row + row + row;
   }
 
@@ -1329,10 +1475,10 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   function initFeedDelegate() {
     document.getElementById('feed-body').addEventListener('click', function(e) {
       if (e.target.classList.contains('feed-item-img')) return;
-      var el = e.target.closest('.feed-item');
+      const el = e.target.closest('.feed-item');
       if (!el) return;
-      var lat = parseFloat(el.dataset.lat), lng = parseFloat(el.dataset.lng);
-      var pin = allPins.find(function(p) { return String(p.id) === el.dataset.id; });
+      const lat = parseFloat(el.dataset.lat), lng = parseFloat(el.dataset.lng);
+      const pin = allPins.find(function(p) { return String(p.id) === el.dataset.id; });
       if (pin) { closePanel('feed-panel'); openDetail(pin); }
       else if (lat && lng) { closePanel('feed-panel'); map.setView([lat, lng], 16, { animate: true }); }
     });
@@ -1351,41 +1497,52 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   }
 
   // SUBMIT
+  let submitting = false;
   function submitPin() {
+    if (submitting) return;
     if (!contributor) { showNameOverlay(); return; }
     // Queue if offline
     if (!isOnline) {
-      var queueItem = {
-        contributor_name: contributor,
-        note: document.getElementById('note-input').value.trim() || null,
-        label: document.getElementById('label-input').value.trim() || null,
-        photo_url: null,
-        city: detectedCity || detectCity(map.getCenter().lat, map.getCenter().lng),
-        lat: detectedLat || map.getCenter().lat,
-        lng: detectedLng || map.getCenter().lng
-      };
-      offlineQueue.push(queueItem);
-      saveQueue();
-      closePanel('add-panel');
-      resetForm();
-      showToast('No connection — observation queued for upload');
-      haptic();
+      const qNote = document.getElementById('note-input').value.trim() || null;
+      const qLabel = document.getElementById('label-input').value.trim() || null;
+      const qCity = detectedCity || detectCity(map.getCenter().lat, map.getCenter().lng);
+      const qLat = detectedLat || map.getCenter().lat;
+      const qLng = detectedLng || map.getCenter().lng;
+      const doBase64 = photoFile
+        ? compressPhoto(photoFile).then(function(blob) {
+            return new Promise(function(resolve) {
+              const reader = new FileReader();
+              reader.onload = function(e) { resolve(e.target.result); };
+              reader.onerror = function() { resolve(null); };
+              reader.readAsDataURL(blob);
+            });
+          })
+        : Promise.resolve(null);
+      doBase64.then(function(photoData) {
+        offlineQueue.push({ contributor_name: contributor, contributor_id: contributorId, note: qNote, label: qLabel, photo_data: photoData, city: qCity, lat: qLat, lng: qLng });
+        saveQueue();
+        closePanel('add-panel');
+        resetForm();
+        showToast('No connection — observation queued' + (photoData ? ' with photo' : ''));
+        haptic();
+      });
       return;
     }
 
     if (!detectedLat || !detectedLng) {
-      var c = map.getCenter();
+      const c = map.getCenter();
       detectedLat = c.lat; detectedLng = c.lng;
       detectedCity = detectCity(c.lat, c.lng);
     }
 
-    var savedLat = detectedLat, savedLng = detectedLng, savedCity = detectedCity;
-    var note = document.getElementById('note-input').value.trim();
-    var label = document.getElementById('label-input').value.trim();
-    var btn = document.getElementById('submit-btn');
+    const savedLat = detectedLat, savedLng = detectedLng, savedCity = detectedCity;
+    const note = document.getElementById('note-input').value.trim();
+    const label = document.getElementById('label-input').value.trim();
+    const btn = document.getElementById('submit-btn');
+    submitting = true;
     btn.disabled = true; btn.textContent = photoFile ? 'Uploading photo…' : 'Saving…';
 
-    var doUpload = photoFile ? compressPhoto(photoFile).then(uploadPhoto) : Promise.resolve(null);
+    const doUpload = photoFile ? compressPhoto(photoFile).then(uploadPhoto) : Promise.resolve(null);
     doUpload.then(function(photoUrl) {
       btn.textContent = 'Saving…';
       return api('pins', 'POST', {
@@ -1395,10 +1552,11 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
         photo_url: photoUrl,
         city: savedCity,
         lat: savedLat,
-        lng: savedLng
+        lng: savedLng,
+        contributor_id: contributorId
       });
     }).then(function(res) {
-      btn.disabled = false; btn.textContent = 'Add to Map';
+      submitting = false; btn.disabled = false; btn.textContent = 'Add to Map';
       if (Array.isArray(res) && res[0]) {
         allPins.unshift(res[0]);
         addPinToLayers(res[0]);
@@ -1413,7 +1571,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
         console.error('Pin save response:', res);
       }
     }).catch(function(e) {
-      btn.disabled = false; btn.textContent = 'Add to Map';
+      submitting = false; btn.disabled = false; btn.textContent = 'Add to Map';
       showToast(e.message || 'Error — try again', true);
       console.error('Submit error:', e);
     });
@@ -1427,7 +1585,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   }
 
   function saveName() {
-    var val = document.getElementById('name-input').value.trim();
+    const val = document.getElementById('name-input').value.trim();
     if (!val) return;
     contributor = val;
     localStorage.setItem('fn_name', val);
@@ -1439,6 +1597,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   // BOOT
   window.addEventListener('load', function() {
     initMap();
+    initCityTabs();
     initTabs();
     initPhoto();
     initFeedDelegate();
@@ -1446,7 +1605,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     loadData();
 
     // ONBOARDING
-    var hasSeenOnboard = localStorage.getItem('fn_onboarded');
+    const hasSeenOnboard = localStorage.getItem('fn_onboarded');
     if (!hasSeenOnboard) {
       document.getElementById('onboard-overlay').classList.remove('hidden');
     } else if (!contributor) {
@@ -1464,13 +1623,33 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
       haptic();
     });
 
+    // ADMIN OVERLAY
+    function submitAdminPassword() {
+      const val = document.getElementById('admin-input').value;
+      if (!val) return;
+      document.getElementById('admin-overlay').classList.add('hidden');
+      if (val === ADMIN_PASSWORD) {
+        isAdmin = true;
+        sessionStorage.setItem('fn_admin', '1');
+        adminBtn.classList.add('active');
+        document.getElementById('admin-bar').classList.add('visible');
+        document.getElementById('topbar').classList.add('admin-active');
+        showToast('Admin mode on');
+        haptic();
+      } else {
+        showToast('Incorrect password', true);
+      }
+    }
+    document.getElementById('admin-save-btn').addEventListener('click', submitAdminPassword);
+    document.getElementById('admin-input').addEventListener('keydown', function(e) { if (e.key === 'Enter') submitAdminPassword(); });
+
     // NAME
     document.getElementById('name-btn').addEventListener('click', showNameOverlay);
     document.getElementById('name-save-btn').addEventListener('click', saveName);
     document.getElementById('name-input').addEventListener('keydown', function(e) { if (e.key === 'Enter') saveName(); });
 
     // ADMIN
-    var adminBtn = document.getElementById('admin-btn');
+    const adminBtn = document.getElementById('admin-btn');
     if (isAdmin) {
       adminBtn.classList.add('active');
       document.getElementById('admin-bar').classList.add('visible');
@@ -1485,19 +1664,9 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
         document.getElementById('topbar').classList.remove('admin-active');
         showToast('Admin mode off');
       } else {
-        var val = prompt('Admin password:');
-        if (!val) return;
-        if (val === ADMIN_PASSWORD) {
-          isAdmin = true;
-          sessionStorage.setItem('fn_admin', '1');
-          adminBtn.classList.add('active');
-          document.getElementById('admin-bar').classList.add('visible');
-          document.getElementById('topbar').classList.add('admin-active');
-          showToast('Admin mode on');
-          haptic();
-        } else {
-          showToast('Incorrect password', true);
-        }
+        document.getElementById('admin-input').value = '';
+        document.getElementById('admin-overlay').classList.remove('hidden');
+        setTimeout(function() { document.getElementById('admin-input').focus(); }, 100);
       }
     });
 
@@ -1513,9 +1682,9 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
       openPanel('feed-panel');
       markFeedSeen();
     });
-    var searchDebounce;
-    var feedSearchEl = document.getElementById('feed-search');
-    var feedSearchClear = document.getElementById('feed-search-clear');
+    let searchDebounce;
+    const feedSearchEl = document.getElementById('feed-search');
+    const feedSearchClear = document.getElementById('feed-search-clear');
     feedSearchEl.addEventListener('input', function() {
       feedSearchClear.classList.toggle('visible', feedSearchEl.value.length > 0);
       clearTimeout(searchDebounce);
@@ -1530,7 +1699,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     document.getElementById('close-add').addEventListener('click', function() { closePanel('add-panel'); resetForm(); });
 
     // TAP-TO-PLACE
-    var placingOnMap = false;
+    let placingOnMap = false;
     function enterPlaceMode() {
       placingOnMap = true;
       closePanel('add-panel');
@@ -1544,7 +1713,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
       document.getElementById('map-crosshair-dot').style.display = 'none';
       document.getElementById('place-confirm-bar').style.display = 'none';
       if (confirm) {
-        var c = map.getCenter();
+        const c = map.getCenter();
         detectedLat = c.lat; detectedLng = c.lng;
         detectedCity = detectCity(c.lat, c.lng);
         setLocStatus('found', '📍 ' + (detectedCity || 'Custom location') + ' — placed on map');
@@ -1564,6 +1733,24 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
       resetForm();
     });
 
+    // ESCAPE KEY CLOSES PANELS AND OVERLAYS
+    document.addEventListener('keydown', function(e) {
+      if (e.key !== 'Escape') return;
+      closeAllPanels(); resetForm();
+      document.getElementById('admin-overlay').classList.add('hidden');
+      document.getElementById('overlay').classList.add('hidden');
+      // Onboarding only closes if name is already set
+      if (contributor) document.getElementById('onboard-overlay').classList.add('hidden');
+    });
+
+    // BACKDROP CLICK ON OVERLAYS
+    document.getElementById('admin-overlay').addEventListener('click', function(e) {
+      if (e.target === this) this.classList.add('hidden');
+    });
+    document.getElementById('overlay').addEventListener('click', function(e) {
+      if (e.target === this && contributor) this.classList.add('hidden');
+    });
+
     // FEED FILTER
     document.querySelectorAll('.feed-filter-btn').forEach(function(btn) {
       btn.addEventListener('click', function() {
@@ -1576,8 +1763,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     });
 
     // PULL TO REFRESH (feed panel)
-    var feedPanel = document.getElementById('feed-panel');
-    var pullStart = 0;
+    const feedPanel = document.getElementById('feed-panel');
+    let pullStart = 0;
     feedPanel.addEventListener('touchstart', function(e) {
       if (feedPanel.scrollTop === 0) pullStart = e.touches[0].clientY;
     }, { passive: true });
@@ -1622,7 +1809,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 
     // FIT ALL OBSERVATIONS BUTTON
     document.getElementById('fit-btn').addEventListener('click', function() {
-      var visible = (currentCity === 'all' ? allPins : allPins.filter(function(p) { return p.city === currentCity; }))
+      const visible = (currentCity === 'all' ? allPins : allPins.filter(function(p) { return p.city === currentCity; }))
         .filter(function(p) { return p.lat && p.lng; });
       if (!visible.length) { showToast('No observations to fit'); return; }
       map.fitBounds(L.latLngBounds(visible.map(function(p) { return [p.lat, p.lng]; })),
@@ -1631,9 +1818,9 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     });
 
     // CURRENT LOCATION BUTTON
-    var locateBtn = document.getElementById('locate-btn');
-    var locateMarker = null;
-    var locateCircle = null;
+    const locateBtn = document.getElementById('locate-btn');
+    let locateMarker = null;
+    let locateCircle = null;
 
     locateBtn.addEventListener('click', function() {
       if (!navigator.geolocation) { showToast('Geolocation not supported', true); return; }
@@ -1643,15 +1830,15 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 
       navigator.geolocation.getCurrentPosition(
         function(pos) {
-          var lat = pos.coords.latitude;
-          var lng = pos.coords.longitude;
-          var accuracy = pos.coords.accuracy;
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          const accuracy = pos.coords.accuracy;
 
           // Remove previous markers
           if (locateMarker) { map.removeLayer(locateMarker); map.removeLayer(locateCircle); }
 
           // Blue dot for current location
-          var locIcon = L.divIcon({
+          const locIcon = L.divIcon({
             className: '',
             html: '<div style="width:14px;height:14px;background:#4a90d9;border-radius:50%;border:3px solid white;outline:3px solid rgba(74,144,217,0.35);outline-offset:1px;"></div>',
             iconSize: [14,14], iconAnchor: [7,7]
@@ -1671,7 +1858,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
         },
         function(err) {
           locateBtn.className = '';
-          var msg = err.code === 1 ? 'Location permission denied' :
+          const msg = err.code === 1 ? 'Location permission denied' :
                     err.code === 2 ? 'Location unavailable' : 'Location timed out';
           showToast(msg, true);
         },
