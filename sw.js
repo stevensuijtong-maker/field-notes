@@ -1,6 +1,6 @@
 // Bump CACHE version whenever you deploy changes to index.html or sw.js
 // e.g. 'field-notes-v2', 'field-notes-v3', ...
-const CACHE = 'field-notes-v1';
+const CACHE = 'field-notes-v2';
 const SHELL = [
   '/field-notes/',
   '/field-notes/manifest.json',
@@ -35,12 +35,16 @@ self.addEventListener('fetch', function(e) {
   // Never intercept Supabase API or WebSocket — always needs live data
   if (e.request.url.includes('supabase.co')) return;
 
+  // Never intercept map tiles — let browser HTTP cache handle them natively.
+  // Caching tiles in the service worker caused grey tile issues in Safari.
+  if (e.request.url.includes('cartocdn.com')) return;
+
   e.respondWith(
     caches.match(e.request).then(function(cached) {
       if (cached) return cached;
       return fetch(e.request).then(function(response) {
-        // Cache CDN assets and map tiles on first load
-        if (e.request.url.includes('jsdelivr.net') || e.request.url.includes('cartocdn.com')) {
+        // Only cache CDN assets (JS/CSS libraries), not tiles
+        if (e.request.url.includes('jsdelivr.net')) {
           const clone = response.clone();
           caches.open(CACHE).then(function(cache) { cache.put(e.request, clone); });
         }
