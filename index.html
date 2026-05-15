@@ -447,19 +447,31 @@ if ('serviceWorker' in navigator) {
   const urlPin = urlParams.get('pin');
   const wantsAdmin = urlParams.get('admin') === '1';
 
-  // TOKEN GATE
-  const storedToken = localStorage.getItem('fn_token');
+  // COOKIE HELPERS — cookies survive Safari's localStorage purging
+  function setCookie(name, value, days) {
+    var expires = new Date(Date.now() + days * 864e5).toUTCString();
+    document.cookie = name + '=' + encodeURIComponent(value) + '; expires=' + expires + '; path=/; SameSite=Lax';
+  }
+  function getCookie(name) {
+    var match = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '=([^;]*)'));
+    return match ? decodeURIComponent(match[1]) : null;
+  }
+
+  // TOKEN GATE — cookie-first, localStorage as fallback
+  const storedToken = getCookie('fn_token') || localStorage.getItem('fn_token');
   const incomingToken = urlUser ? urlUser.toLowerCase().trim() : null;
   let resolvedToken = null, resolvedName = null;
 
   if (incomingToken && VALID_TOKENS[incomingToken]) {
     resolvedToken = incomingToken;
     resolvedName = VALID_TOKENS[incomingToken];
+    setCookie('fn_token', incomingToken, 365);
     localStorage.setItem('fn_token', incomingToken);
     localStorage.setItem('fn_name', resolvedName);
   } else if (storedToken && VALID_TOKENS[storedToken]) {
     resolvedToken = storedToken;
     resolvedName = VALID_TOKENS[storedToken];
+    setCookie('fn_token', storedToken, 365); // refresh expiry on each visit
   } else {
     document.getElementById('gate-screen').classList.remove('hidden');
     document.getElementById('map-loading').classList.add('hidden');
