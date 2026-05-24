@@ -429,21 +429,28 @@ if ('serviceWorker' in navigator) {
   const ADMIN_PASSWORD = 'CHANGEME';
 
   // ─── INVITE TOKENS ────────────────────────────────────────────────────────
-  // Send each participant: https://stevensuijtong-maker.github.io/field-notes/?u=TOKEN
+  // Send each participant their unique link:
+  // https://stevensuijtong-maker.github.io/field-notes/?t=TOKEN
+  // Legacy ?u=name links still work as fallback.
   const VALID_TOKENS = {
-    'admin':   'Admin',
-    'violet':  'Violet',
-    'alina':   'Alina',
-    'steven':  'Steven',
-    'eugene':  'Eugene',
-    'cecelia': 'Cecelia'
+    'admin':    'Admin',
+    'steven':   'Steven',
+    'c9e3d275': 'Eugene Yu',
+    '8248f2b5': 'Christopher Woodward',
+    '3c3d6c01': 'Stephanie Wademan',
+    'a9420456': 'Alina Senchenko',
+    '03ce2e74': 'Ciara Rose',
+    '111f10e4': 'Cecelia Grant',
+    'b59ef6c3': 'Jasmine Brown',
+    '4b6052e7': 'Grace Bishop'
   };
   // ──────────────────────────────────────────────────────────────────────────
 
   let map, allPins = [], currentCity = 'all', feedFilter = 'all';
 
   const urlParams = new URLSearchParams(window.location.search);
-  const urlUser = urlParams.get('u');
+  // EDIT 1: support ?t=hex-token (new) with ?u=name as legacy fallback
+  const urlUser = urlParams.get('t') || urlParams.get('u');
   const urlPin = urlParams.get('pin');
   const wantsAdmin = urlParams.get('admin') === '1';
 
@@ -826,7 +833,8 @@ if ('serviceWorker' in navigator) {
       const dirBtn = document.getElementById('directions-btn');
       if (dirBtn) dirBtn.addEventListener('click', function() { haptic(); const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream; window.open(isIOS ? 'https://maps.apple.com/?daddr=' + pin.lat + ',' + pin.lng : 'https://www.google.com/maps/dir/?api=1&destination=' + pin.lat + ',' + pin.lng, '_blank'); });
 
-      document.getElementById('share-pin-btn').addEventListener('click', function() { haptic(); const shareUrl = location.origin + location.pathname + '?pin=' + pin.id + '&u=' + encodeURIComponent(resolvedToken); navigator.clipboard.writeText(shareUrl).then(function() { showToast('Link copied'); }).catch(function() { showToast(shareUrl); }); });
+      // EDIT 3: share-pin URL now uses ?t= instead of ?u=
+      document.getElementById('share-pin-btn').addEventListener('click', function() { haptic(); const shareUrl = location.origin + location.pathname + '?pin=' + pin.id + '&t=' + encodeURIComponent(resolvedToken); navigator.clipboard.writeText(shareUrl).then(function() { showToast('Link copied'); }).catch(function() { showToast(shareUrl); }); });
 
       if (isOwner) {
         document.getElementById('edit-note-btn').addEventListener('click', function() {
@@ -870,7 +878,8 @@ if ('serviceWorker' in navigator) {
     const exportBtn = body.querySelector('#export-pdf-btn'); if (exportBtn) exportBtn.addEventListener('click', exportPDF);
 
     body.querySelectorAll('.share-user-btn').forEach(function(btn) {
-      btn.addEventListener('click', function(e) { e.stopPropagation(); const name = btn.dataset.name; const token = Object.keys(VALID_TOKENS).find(function(k) { return VALID_TOKENS[k] === name; }); const url = location.origin + location.pathname + '?u=' + encodeURIComponent(token || name.toLowerCase()); navigator.clipboard.writeText(url).then(function() { showToast('Link copied for ' + name); haptic(); }).catch(function() { showToast(url, false); }); });
+      // EDIT 4: share-user URL now uses ?t= instead of ?u=
+      btn.addEventListener('click', function(e) { e.stopPropagation(); const name = btn.dataset.name; const token = Object.keys(VALID_TOKENS).find(function(k) { return VALID_TOKENS[k] === name; }); const url = location.origin + location.pathname + '?t=' + encodeURIComponent(token || name.toLowerCase()); navigator.clipboard.writeText(url).then(function() { showToast('Link copied for ' + name); haptic(); }).catch(function() { showToast(url, false); }); });
     });
 
     if (isAdmin) {
