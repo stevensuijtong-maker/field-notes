@@ -705,12 +705,7 @@ if ('serviceWorker' in navigator) {
   }
   function markFeedSeen() { feedSeenCount = allPins.length; localStorage.setItem('fn_feed_seen', feedSeenCount); updateFeedBadge(); }
 
-  function updateTabCounts() {
-    document.querySelectorAll('.city-tab').forEach(function(tab) {
-      const city = tab.dataset.city, count = city === 'all' ? allPins.length : allPins.filter(function(p) { return p.city === city; }).length;
-      tab.innerHTML = (city === 'all' ? 'All' : city) + (count > 0 ? ' <span class="tab-count">' + count + '</span>' : '');
-    });
-  }
+  function updateTabCounts() { renderCityTabs(); }
 
   let clusterGroup = null;
 
@@ -793,14 +788,34 @@ if ('serviceWorker' in navigator) {
     window.addEventListener('online', function() { if (ws.readyState !== WebSocket.OPEN) connect(); });
   }
 
-  function initCityTabs() {
+  function renderCityTabs() {
     const container = document.getElementById('city-tabs');
-    Object.keys(CITIES).forEach(function(city, i) { const tab = document.createElement('div'); tab.className = 'city-tab' + (i === 0 ? ' active' : ''); tab.dataset.city = city; tab.textContent = city === 'all' ? 'All' : city; container.appendChild(tab); });
+    // Collect unique cities from pins, preserving insertion order
+    const seen = {}, citiesFromPins = [];
+    allPins.forEach(function(p) { if (p.city && p.city !== 'Unknown' && !seen[p.city]) { seen[p.city] = true; citiesFromPins.push(p.city); } });
+    // Rebuild tab bar: All + one tab per city found in pins
+    container.innerHTML = '';
+    ['all'].concat(citiesFromPins).forEach(function(city) {
+      const tab = document.createElement('div');
+      tab.className = 'city-tab' + (city === currentCity ? ' active' : '');
+      tab.dataset.city = city;
+      const count = city === 'all' ? allPins.length : allPins.filter(function(p) { return p.city === city; }).length;
+      tab.innerHTML = (city === 'all' ? 'All' : city) + (count > 0 ? ' <span class="tab-count">' + count + '</span>' : '');
+      container.appendChild(tab);
+    });
   }
 
   function initTabs() {
-    document.querySelectorAll('.city-tab').forEach(function(tab) {
-      tab.addEventListener('click', function() { haptic(); document.querySelectorAll('.city-tab').forEach(function(t) { t.classList.remove('active'); }); tab.classList.add('active'); currentCity = tab.dataset.city; renderMarkers(); const c = CITIES[currentCity] || CITIES['all']; map.setView(c.center, c.zoom, { animate: false }); });
+    // Use event delegation so dynamically added tabs work automatically
+    document.getElementById('city-tabs').addEventListener('click', function(e) {
+      const tab = e.target.closest('.city-tab'); if (!tab) return;
+      haptic();
+      document.querySelectorAll('.city-tab').forEach(function(t) { t.classList.remove('active'); });
+      tab.classList.add('active');
+      currentCity = tab.dataset.city;
+      renderMarkers();
+      const c = CITIES[currentCity] || CITIES['St. Louis'];
+      map.setView(c.center, c.zoom, { animate: false });
     });
   }
 
@@ -961,7 +976,7 @@ if ('serviceWorker' in navigator) {
   function deactivateAdmin() { isAdmin = false; sessionStorage.removeItem('fn_admin'); const bar = document.getElementById('admin-bar'); bar.classList.remove('visible'); setTimeout(function() { bar.style.display = 'none'; }, 300); document.getElementById('topbar').classList.remove('admin-active'); showToast('Admin mode off'); }
 
   window.addEventListener('load', function() {
-    initMap(); initCityTabs(); initTabs(); initPhoto(); initFeedDelegate(); updateOnlineStatus(); loadData();
+    initMap(); initTabs(); initPhoto(); initFeedDelegate(); updateOnlineStatus(); loadData();
 
     const nameBtn = document.getElementById('name-btn'); nameBtn.textContent = contributor; nameBtn.title = 'Signed in as ' + contributor;
     nameBtn.addEventListener('click', function() { showToast('Signed in as ' + contributor); });
