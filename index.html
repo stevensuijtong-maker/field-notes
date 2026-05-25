@@ -73,8 +73,12 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 
 /* BOTTOM CONTROLS */
 #bottom-controls { position: fixed; bottom: 0; left: 0; right: 0; z-index: 100; padding: 0 20px calc(36px + env(safe-area-inset-bottom)); background: linear-gradient(to top, rgba(14,14,14,0.96) 70%, transparent); }
-#city-tabs { display: flex; gap: 6px; margin-bottom: 14px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+#city-tabs { display: flex; gap: 6px; margin-bottom: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
 #city-tabs::-webkit-scrollbar { display: none; }
+#date-filter { display: flex; gap: 6px; margin-bottom: 14px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+#date-filter::-webkit-scrollbar { display: none; }
+.date-tab { flex-shrink: 0; padding: 5px 12px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); border: 1px solid var(--border); border-radius: 2px; cursor: pointer; background: var(--surface); transition: color 0.15s, border-color 0.15s, background 0.15s; }
+.date-tab.active { color: var(--accent2); border-color: var(--accent2); background: rgba(143,179,160,0.08); }
 .city-tab { flex-shrink: 0; padding: 5px 12px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); border: 1px solid var(--border); border-radius: 2px; cursor: pointer; background: var(--surface); transition: color 0.15s, border-color 0.15s, background 0.15s; }
 .city-tab.active { color: var(--accent); border-color: var(--accent); background: rgba(200,184,154,0.08); }
 #action-row { display: flex; gap: 10px; }
@@ -302,6 +306,12 @@ mark { background: rgba(200,184,154,0.25); color: inherit; border-radius: 2px; p
 
 <div id="queue-badge">Queued observations pending</div>
 <div id="bottom-controls">
+  <div id="date-filter">
+    <div class="date-tab active" data-date="all">All</div>
+    <div class="date-tab" data-date="today">Today</div>
+    <div class="date-tab" data-date="yesterday">Yesterday</div>
+    <div class="date-tab" data-date="week">This Week</div>
+  </div>
   <div id="city-tabs"></div>
   <div id="action-row">
     <button id="add-btn" aria-label="Add observation">+ Add Observation</button>
@@ -447,7 +457,7 @@ if ('serviceWorker' in navigator) {
   };
   // ──────────────────────────────────────────────────────────────────────────
 
-  let map, allPins = [], currentCity = 'all', feedFilter = 'all';
+  let map, allPins = [], currentCity = 'all', feedFilter = 'all', dateFilter = 'all';
 
   const urlParams = new URLSearchParams(window.location.search);
   // EDIT 1: support ?t=hex-token (new) with ?u=name as legacy fallback
@@ -728,7 +738,7 @@ if ('serviceWorker' in navigator) {
   function renderMarkers() {
     if (!clusterGroup) { clusterGroup = L.markerClusterGroup({ maxClusterRadius: 40, spiderfyOnMaxZoom: true, showCoverageOnHover: false, zoomToBoundsOnClick: true, animate: false, chunkedLoading: true, removeOutsideVisibleBounds: true }); map.addLayer(clusterGroup); }
     else { clusterGroup.clearLayers(); }
-    const pins = currentCity === 'all' ? allPins : allPins.filter(function(p) { return p.city === currentCity; });
+    const pins = getFilteredPins();
     clusterGroup.addLayers(pins.filter(function(p) { return p.lat && p.lng; }).map(makeMarkerForPin));
     document.getElementById('map-hint').classList.toggle('hidden', pins.length > 0);
   }
@@ -740,7 +750,7 @@ if ('serviceWorker' in navigator) {
     if (el) { el.classList.add('marker-new'); setTimeout(function() { el.classList.remove('marker-new'); }, 400); }
   }
 
-  const PIN_LIMIT = 200; let allPinsFullyLoaded = false;
+  const PIN_LIMIT = 1000; let allPinsFullyLoaded = false;
 
   function loadData(silent) {
     if (!silent) document.getElementById('map-loading-sub').textContent = 'Loading observations…';
@@ -789,18 +799,61 @@ if ('serviceWorker' in navigator) {
     window.addEventListener('online', function() { if (ws.readyState !== WebSocket.OPEN) connect(); });
   }
 
+  function getDateRange(filter) {
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    if (filter === 'today') return { from: startOfDay };
+    if (filter === 'yesterday') {
+      const start = new Date(startOfDay); start.setDate(start.getDate() - 1);
+      return { from: start, to: startOfDay };
+    }
+    if (filter === 'week') {
+      const start = new Date(startOfDay); start.setDate(start.getDate() - 7);
+      return { from: start };
+    }
+    return null;
+  }
+
+  function filterPinsByDate(pins) {
+    const range = getDateRange(dateFilter);
+    if (!range) return pins;
+    return pins.filter(function(p) {
+      const d = new Date(p.created_at);
+      if (range.from && d < range.from) return false;
+      if (range.to && d >= range.to) return false;
+      return true;
+    });
+  }
+
+  function initDateFilter() {
+    document.getElementById('date-filter').addEventListener('click', function(e) {
+      const tab = e.target.closest('.date-tab'); if (!tab) return;
+      haptic();
+      document.querySelectorAll('.date-tab').forEach(function(t) { t.classList.remove('active'); });
+      tab.classList.add('active');
+      dateFilter = tab.dataset.date;
+      renderMarkers(); renderCityTabs();
+    });
+  }
+
+  function getFilteredPins() {
+    let pins = currentCity === 'all' ? allPins : allPins.filter(function(p) { return p.city === currentCity; });
+    return filterPinsByDate(pins);
+  }
+
   function renderCityTabs() {
     const container = document.getElementById('city-tabs');
-    // Collect unique cities from pins, preserving insertion order
+    // Collect unique cities from date-filtered pins
+    const datePins = filterPinsByDate(allPins);
     const seen = {}, citiesFromPins = [];
-    allPins.forEach(function(p) { if (p.city && p.city !== 'Unknown' && !seen[p.city]) { seen[p.city] = true; citiesFromPins.push(p.city); } });
-    // Rebuild tab bar: All + one tab per city found in pins
+    datePins.forEach(function(p) { if (p.city && p.city !== 'Unknown' && !seen[p.city]) { seen[p.city] = true; citiesFromPins.push(p.city); } });
+    // Rebuild tab bar: All + one tab per city found in filtered pins
     container.innerHTML = '';
     ['all'].concat(citiesFromPins).forEach(function(city) {
       const tab = document.createElement('div');
       tab.className = 'city-tab' + (city === currentCity ? ' active' : '');
       tab.dataset.city = city;
-      const count = city === 'all' ? allPins.length : allPins.filter(function(p) { return p.city === city; }).length;
+      const count = city === 'all' ? datePins.length : datePins.filter(function(p) { return p.city === city; }).length;
       tab.innerHTML = (city === 'all' ? 'All' : city) + (count > 0 ? ' <span class="tab-count">' + count + '</span>' : '');
       container.appendChild(tab);
     });
@@ -917,7 +970,7 @@ if ('serviceWorker' in navigator) {
   function renderFeed() {
     const body = document.getElementById('feed-body'), scrollTop = body.scrollTop;
     const searchEl = document.getElementById('feed-search'), searchVal = searchEl ? searchEl.value.toLowerCase().trim() : '';
-    const pins = allPins.filter(function(p) {
+    const pins = filterPinsByDate(allPins).filter(function(p) {
       return (currentCity === 'all' || p.city === currentCity) &&
         (feedFilter === 'all' || (p.contributor_id ? p.contributor_id === contributorId : p.contributor_name === contributor)) &&
         (!searchVal || (p.note && p.note.toLowerCase().indexOf(searchVal) > -1) || (p.label && p.label.toLowerCase().indexOf(searchVal) > -1) || (p.contributor_name && p.contributor_name.toLowerCase().indexOf(searchVal) > -1) || (p.city && p.city.toLowerCase().indexOf(searchVal) > -1));
@@ -977,7 +1030,7 @@ if ('serviceWorker' in navigator) {
   function deactivateAdmin() { isAdmin = false; sessionStorage.removeItem('fn_admin'); const bar = document.getElementById('admin-bar'); bar.classList.remove('visible'); setTimeout(function() { bar.style.display = 'none'; }, 300); document.getElementById('topbar').classList.remove('admin-active'); showToast('Admin mode off'); }
 
   window.addEventListener('load', function() {
-    initMap(); initTabs(); initPhoto(); initFeedDelegate(); updateOnlineStatus(); loadData();
+    initMap(); initTabs(); initDateFilter(); initPhoto(); initFeedDelegate(); updateOnlineStatus(); loadData();
 
     const nameBtn = document.getElementById('name-btn'); nameBtn.textContent = contributor; nameBtn.title = 'Signed in as ' + contributor;
     nameBtn.addEventListener('click', function() { showToast('Signed in as ' + contributor); });
